@@ -17,8 +17,10 @@ jobs:
       - name: Select Xcode 15.4
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
-      - name: Setup project (write sources + generate xcodeproj)
-        run: python3 "setup and build.py"
+      - name: Setup project
+        run: |
+          cp "setup and build.py" s.py
+          python3 s.py
 
       - name: Build
         run: |
@@ -37,13 +39,16 @@ jobs:
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             ONLY_ACTIVE_ARCH=NO \
             clean build \
-            -derivedDataPath build/DerivedData \
-            | xcpretty || true
+            -derivedDataPath build/DerivedData
+
+      - name: Find app
+        run: |
+          find build/DerivedData -name "*.app" -type d
+          APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
+          echo "APP=$APP" >> $GITHUB_ENV
 
       - name: Package IPA
         run: |
-          APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
-          echo "App found: $APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
           zip -r 3105-unsigned.ipa Payload/
