@@ -22,8 +22,22 @@ jobs:
           cp "setup and build.py" s.py
           python3 s.py
 
+      - name: Find containermanager
+        run: |
+          find /Applications/Xcode_15.4.app -name "*containermanager*" 2>/dev/null || true
+          find /Library/Developer -name "*containermanager*" 2>/dev/null || true
+
       - name: Build
         run: |
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          CM_LIB=$(find "$SDK_PATH" -name "libsystem_containermanager*" 2>/dev/null | head -1)
+          if [ -n "$CM_LIB" ]; then
+            CM_DIR=$(dirname "$CM_LIB")
+            LDFLAGS="-L$CM_DIR -lsystem_containermanager"
+          else
+            LDFLAGS="-lsystem_containermanager"
+          fi
+          echo "Using LDFLAGS: $LDFLAGS"
           xcodebuild \
             -project 3105.xcodeproj \
             -scheme 3105 \
@@ -33,7 +47,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=NO \
-            OTHER_LDFLAGS="-lsystem_containermanager" \
+            OTHER_LDFLAGS="$LDFLAGS" \
             SWIFT_OBJC_BRIDGING_HEADER="Sources/3105-Bridging-Header.h" \
             PRODUCT_BUNDLE_IDENTIFIER="com.apple.mobile.MobileHouseArrest" \
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
@@ -43,7 +57,7 @@ jobs:
 
       - name: Find app
         run: |
-          find build/DerivedData -name "*.app" -type d
+          find build/DerivedData -name "3105.app" -type d
           APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
           echo "APP=$APP" >> $GITHUB_ENV
 
