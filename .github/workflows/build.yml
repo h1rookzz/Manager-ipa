@@ -18,7 +18,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
       - name: Setup project (write sources + generate xcodeproj)
-        run: python3 setup and build.py
+        run: python3 setup_and_build.py
 
       - name: Build
         run: |
