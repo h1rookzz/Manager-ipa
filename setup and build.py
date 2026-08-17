@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-setup_and_build.py — разворачивает проект 3105 и генерирует xcodeproj.
-Запускается GitHub Actions на macos-14 runner.
-"""
-import os, base64, hashlib, sys
+import os, base64, hashlib
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,7 +23,6 @@ FILES = {
     'Sources/Views/Settings/SysctlBridge.h': 'I2lmbmRlZiBTeXNjdGxCcmlkZ2VfaAojZGVmaW5lIFN5c2N0bEJyaWRnZV9oCgojaW5jbHVkZSA8c3lzL3N5c2N0bC5oPgoKI2VuZGlmIC8qIFN5c2N0bEJyaWRnZV9oICovCg==',
 }
 
-
 def write_files():
     for rel, b64 in FILES.items():
         dest = os.path.join(ROOT, rel)
@@ -37,76 +32,71 @@ def write_files():
         print(f"  wrote {rel}")
 
 def uid(seed):
-    import hashlib
     return hashlib.md5(seed.encode()).hexdigest()[:24].upper()
 
 def collect_sources():
-    swift = []
-    headers = []
+    swift, headers = [], []
     src = os.path.join(ROOT, "Sources")
     for dirpath, _, filenames in os.walk(src):
         for f in filenames:
             p = os.path.join(dirpath, f)
-            if f.endswith(".swift"):
-                swift.append(p)
-            elif f.endswith(".h"):
-                headers.append(p)
+            if f.endswith(".swift"): swift.append(p)
+            elif f.endswith(".h"): headers.append(p)
     return sorted(swift), sorted(headers)
 
 def gen_xcodeproj():
     PROJECT_ID = uid("PROJECT")
     NATIVE_TARGET = uid("NATIVE_TARGET")
-    BUILD_CONFIG_LIST_PROJECT = uid("BCL_PROJECT")
-    BUILD_CONFIG_LIST_TARGET  = uid("BCL_TARGET")
-    CONFIG_DEBUG_PROJECT  = uid("CFG_DEBUG_PROJ")
-    CONFIG_RELEASE_PROJECT = uid("CFG_RELEASE_PROJ")
-    CONFIG_DEBUG_TARGET   = uid("CFG_DEBUG_TGT")
-    CONFIG_RELEASE_TARGET = uid("CFG_RELEASE_TGT")
+    BCL_PROJECT = uid("BCL_PROJECT")
+    BCL_TARGET  = uid("BCL_TARGET")
+    CFG_DP  = uid("CFG_DEBUG_PROJ")
+    CFG_RP  = uid("CFG_RELEASE_PROJ")
+    CFG_DT  = uid("CFG_DEBUG_TGT")
+    CFG_RT  = uid("CFG_RELEASE_TGT")
     SOURCES_PHASE   = uid("SOURCES_PHASE")
     FRAMEWORKS_PHASE = uid("FRAMEWORKS_PHASE")
     RESOURCES_PHASE = uid("RESOURCES_PHASE")
     MAIN_GROUP      = uid("MAIN_GROUP")
     SOURCES_GROUP   = uid("SOURCES_GROUP")
     PRODUCTS_GROUP  = uid("PRODUCTS_GROUP")
-    APP_PRODUCT_REF = uid("APP_PRODUCT_REF")
-    INFOPLIST_FILE  = uid("INFOPLIST_FILE")
+    APP_REF = uid("APP_PRODUCT_REF")
+    PLIST_REF = uid("INFOPLIST_FILE")
 
     swift_files, header_files = collect_sources()
-
     file_refs   = {}
     build_files = {}
     for path in swift_files + header_files:
         rel = os.path.relpath(path, ROOT)
         fid = uid("FILEREF_" + rel)
         bid = uid("BUILDFILE_" + rel)
-        file_refs[rel]   = fid
+        file_refs[rel] = (fid, path)
         build_files[rel] = bid
 
     L = []
-    W = L.append
+    def W(s): L.append(s)
+
     W("// !$*UTF8*$!")
     W("{")
     W("\tarchiveVersion = 1;")
-    W("\tclasses = {")
-    W("\t};")
+    W("\tclasses = {};")
     W("\tobjectVersion = 56;")
     W("\tobjects = {")
     W("")
     W("/* Begin PBXBuildFile section */")
     for rel, bid in build_files.items():
         if rel.endswith(".swift"):
-            fid  = file_refs[rel]
+            fid = file_refs[rel][0]
             name = os.path.basename(rel)
             W(f"\t\t{bid} /* {name} in Sources */ = {{isa = PBXBuildFile; fileRef = {fid} /* {name} */; }};")
     W("/* End PBXBuildFile section */")
     W("")
     W("/* Begin PBXFileReference section */")
-    W(f"\t\t{APP_PRODUCT_REF} /* 3105.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = \"3105.app\"; sourceTree = BUILT_PRODUCTS_DIR; }};")
-    W(f"\t\t{INFOPLIST_FILE} /* Info.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = \"<group>\"; }};")
-    for rel, fid in file_refs.items():
+    W(f"\t\t{APP_REF} = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = \"3105.app\"; sourceTree = BUILT_PRODUCTS_DIR; }};")
+    W(f"\t\t{PLIST_REF} = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = \"<group>\"; }};")
+    for rel, (fid, abspath) in file_refs.items():
         name = os.path.basename(rel)
-        ftype = "sourcecode.swift" if rel.endswith(".swift") else "sourcecode.c.h"
-        W(f"\t\t{fid} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = {ftype}; path = \"{name}\"; sourceTree = \"<group>\"; name = \"{name}\"; }};")
+        ft = "sourcecode.swift" if rel.endswith(".swift") else "sourcecode.c.h"
+        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ft}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     W("/* End PBXFileReference section */")
     W("")
     W("/* Begin PBXFrameworksBuildPhase section */")
@@ -114,21 +104,18 @@ def gen_xcodeproj():
     W("/* End PBXFrameworksBuildPhase section */")
     W("")
     W("/* Begin PBXGroup section */")
-    W(f"\t\t{MAIN_GROUP} = {{isa = PBXGroup; children = ({SOURCES_GROUP},{INFOPLIST_FILE},{PRODUCTS_GROUP},); sourceTree = \"<group>\"; }};")
-    W(f"\t\t{SOURCES_GROUP} = {{isa = PBXGroup; children = (")
-    for rel, fid in file_refs.items():
-        name = os.path.basename(rel)
-        W(f"\t\t\t{fid} /* {name} */,")
-    W(f"\t\t); name = Sources; sourceTree = \"<group>\"; }};")
-    W(f"\t\t{PRODUCTS_GROUP} = {{isa = PBXGroup; children = ({APP_PRODUCT_REF},); name = Products; sourceTree = \"<group>\"; }};")
+    W(f"\t\t{MAIN_GROUP} = {{isa = PBXGroup; children = ({SOURCES_GROUP},{PLIST_REF},{PRODUCTS_GROUP},); sourceTree = \"<group>\"; }};")
+    children = "".join(f"\t\t\t{fid} /* {os.path.basename(rel)} */,\n" for rel,(fid,_) in file_refs.items())
+    W(f"\t\t{SOURCES_GROUP} = {{isa = PBXGroup; children = (\n{children}\t\t); name = Sources; sourceTree = \"<group>\"; }};")
+    W(f"\t\t{PRODUCTS_GROUP} = {{isa = PBXGroup; children = ({APP_REF},); name = Products; sourceTree = \"<group>\"; }};")
     W("/* End PBXGroup section */")
     W("")
     W("/* Begin PBXNativeTarget section */")
-    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BUILD_CONFIG_LIST_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"3105\"; productName = \"3105\"; productReference = {APP_PRODUCT_REF}; productType = \"com.apple.product-type.application\"; }};")
+    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BCL_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"3105\"; productName = \"3105\"; productReference = {APP_REF}; productType = \"com.apple.product-type.application\"; }};")
     W("/* End PBXNativeTarget section */")
     W("")
     W("/* Begin PBXProject section */")
-    W(f"\t\t{PROJECT_ID} = {{isa = PBXProject; attributes = {{LastSwiftUpdateCheck = 1540; LastUpgradeCheck = 1540; TargetAttributes = {{{NATIVE_TARGET} = {{CreatedOnToolsVersion = 15.4; }}; }}; }}; buildConfigurationList = {BUILD_CONFIG_LIST_PROJECT}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = {MAIN_GROUP}; productRefGroup = {PRODUCTS_GROUP}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({NATIVE_TARGET},); }};")
+    W(f"\t\t{PROJECT_ID} = {{isa = PBXProject; attributes = {{LastSwiftUpdateCheck = 1540; LastUpgradeCheck = 1540; TargetAttributes = {{{NATIVE_TARGET} = {{CreatedOnToolsVersion = 15.4; }}; }}; }}; buildConfigurationList = {BCL_PROJECT}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base,); mainGroup = {MAIN_GROUP}; productRefGroup = {PRODUCTS_GROUP}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({NATIVE_TARGET},); }};")
     W("/* End PBXProject section */")
     W("")
     W("/* Begin PBXResourcesBuildPhase section */")
@@ -136,50 +123,39 @@ def gen_xcodeproj():
     W("/* End PBXResourcesBuildPhase section */")
     W("")
     W("/* Begin PBXSourcesBuildPhase section */")
-    W(f"\t\t{SOURCES_PHASE} = {{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (")
-    for rel, bid in build_files.items():
-        if rel.endswith(".swift"):
-            name = os.path.basename(rel)
-            W(f"\t\t\t{bid} /* {name} in Sources */,")
-    W(f"\t\t); runOnlyForDeploymentPostprocessing = 0; }};")
+    src_files = "".join(f"\t\t\t{bid} /* {os.path.basename(rel)} in Sources */,\n" for rel,bid in build_files.items() if rel.endswith(".swift"))
+    W(f"\t\t{SOURCES_PHASE} = {{isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (\n{src_files}\t\t); runOnlyForDeploymentPostprocessing = 0; }};")
     W("/* End PBXSourcesBuildPhase section */")
     W("")
 
-    def cfg(name, settings):
-        cid = uid(f"CFG_{name}")
-        s = "\n".join(f"\t\t\t\t{k} = {v};" for k,v in settings.items())
-        return cid, f"\t\t{cid} = {{isa = XCBuildConfiguration; buildSettings = {{\n{s}\n\t\t\t}}; name = {name}; }};"
+    def make_cfg(name, settings):
+        cid = uid(f"CFG2_{name}")
+        lines = "\n".join(f"\t\t\t\t{k} = {v};" for k,v in settings.items())
+        return cid, f"\t\t{cid} = {{isa = XCBuildConfiguration; buildSettings = {{\n{lines}\n\t\t\t}}; name = {name}; }};"
 
-    common = {
-        "CODE_SIGN_IDENTITY": '""',
-        "CODE_SIGNING_REQUIRED": "NO",
-        "CODE_SIGNING_ALLOWED": "NO",
-        "ENABLE_HARDENED_RUNTIME": "NO",
-        "IPHONEOS_DEPLOYMENT_TARGET": "16.0",
-        "SDKROOT": "iphoneos",
-        "SWIFT_VERSION": "5.0",
-    }
-    target_extra = {
-        "INFOPLIST_FILE": "Info.plist",
-        "OTHER_LDFLAGS": '"-lsystem_containermanager"',
-        "PRODUCT_BUNDLE_IDENTIFIER": '"com.apple.mobile.MobileHouseArrest"',
-        "PRODUCT_NAME": '"3105"',
-        "SWIFT_OBJC_BRIDGING_HEADER": '"Sources/3105-Bridging-Header.h"',
-        "TARGETED_DEVICE_FAMILY": '"1,2"',
-    }
+    bridging = os.path.join(ROOT, "Sources/3105-Bridging-Header.h")
+    common = {"CODE_SIGN_IDENTITY": '""', "CODE_SIGNING_REQUIRED": "NO", "CODE_SIGNING_ALLOWED": "NO",
+              "ENABLE_HARDENED_RUNTIME": "NO", "IPHONEOS_DEPLOYMENT_TARGET": "16.0",
+              "SDKROOT": "iphoneos", "SWIFT_VERSION": "5.0", "ALWAYS_SEARCH_USER_PATHS": "NO", "ONLY_ACTIVE_ARCH": "NO"}
+    tgt = {**common, "INFOPLIST_FILE": "Info.plist",
+           "OTHER_LDFLAGS": '"-lsystem_containermanager"',
+           "PRODUCT_BUNDLE_IDENTIFIER": '"com.apple.mobile.MobileHouseArrest"',
+           "PRODUCT_NAME": '"3105"',
+           "SWIFT_OBJC_BRIDGING_HEADER": f'"{bridging}"',
+           "TARGETED_DEVICE_FAMILY": '"1,2"'}
 
-    pd_id, pd = cfg("Debug",   {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"', "ONLY_ACTIVE_ARCH": "NO"})
-    pr_id, pr = cfg("Release", {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES", "ONLY_ACTIVE_ARCH": "NO"})
-    td_id, td = cfg("TgtDebug",   {**common, **target_extra, "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"'})
-    tr_id, tr = cfg("TgtRelease", {**common, **target_extra, "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES"})
+    pd_id, pd = make_cfg("Debug",      {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"'})
+    pr_id, pr = make_cfg("Release",    {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES"})
+    td_id, td = make_cfg("TgtDebug",   {**tgt,    "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"'})
+    tr_id, tr = make_cfg("TgtRelease", {**tgt,    "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES"})
 
     W("/* Begin XCBuildConfiguration section */")
     W(pd); W(pr); W(td); W(tr)
     W("/* End XCBuildConfiguration section */")
     W("")
     W("/* Begin XCConfigurationList section */")
-    W(f"\t\t{BUILD_CONFIG_LIST_PROJECT} = {{isa = XCConfigurationList; buildConfigurations = ({pd_id},{pr_id},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};")
-    W(f"\t\t{BUILD_CONFIG_LIST_TARGET} = {{isa = XCConfigurationList; buildConfigurations = ({td_id},{tr_id},); defaultConfigurationIsVisible = 0; defaultConfigurationName = TgtRelease; }};")
+    W(f"\t\t{BCL_PROJECT} = {{isa = XCConfigurationList; buildConfigurations = ({pd_id},{pr_id},); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};")
+    W(f"\t\t{BCL_TARGET}  = {{isa = XCConfigurationList; buildConfigurations = ({td_id},{tr_id},); defaultConfigurationIsVisible = 0; defaultConfigurationName = TgtRelease; }};")
     W("/* End XCConfigurationList section */")
     W("")
     W("\t};")
@@ -192,9 +168,7 @@ def gen_xcodeproj():
     out = os.path.join(proj_dir, "project.pbxproj")
     with open(out, "w") as f:
         f.write(pbxproj)
-    print(f"Generated xcodeproj: {out}")
-    swift_count = len(swift_files)
-    print(f"Swift files: {swift_count}")
+    print(f"Generated: {out}, swift files: {len(swift_files)}")
 
 if __name__ == "__main__":
     print("=== Writing source files ===")
