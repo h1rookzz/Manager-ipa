@@ -42,30 +42,23 @@ jobs:
             clean build \
             -derivedDataPath build/DerivedData \
             2>&1 | tee build_full.log
-          
-          echo "=== ERRORS ==="
-          grep "error:" build_full.log | head -30 || true
-          echo "=== BUILD STATUS ==="
-          tail -5 build_full.log
+          grep "error:" build_full.log | head -20 || true
+          tail -3 build_full.log
 
       - name: Package IPA
         run: |
-          echo "=== Searching for .app ==="
-          find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "nothing in DerivedData"
-          find . -name "*.app" -type d 2>/dev/null | grep -v ".xctoolchain\|Xcode" | head -10
-
-          APP=$(find build/DerivedData -name "3105.app" -type d 2>/dev/null | head -1)
-          echo "APP=$APP"
+          APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
+          echo "Found: $APP"
+          echo "=== App contents ==="
+          ls -lah "$APP"
+          echo "=== App size ==="
+          du -sh "$APP"
           
-          if [ -z "$APP" ]; then
-            echo "ERROR: 3105.app not found"
-            ls build/DerivedData/Build/Products/ 2>/dev/null || echo "No Products dir"
-            exit 1
-          fi
-          
-          ls -la "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
+          echo "=== Payload contents ==="
+          ls -lah Payload/3105.app
+          
           zip -r 3105-unsigned.ipa Payload/
           ls -lh 3105-unsigned.ipa
 
