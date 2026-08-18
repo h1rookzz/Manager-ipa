@@ -16,7 +16,6 @@ jobs:
 
       - name: Select Xcode
         run: |
-          ls /Applications/ | grep Xcode
           sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
           xcodebuild -version
 
@@ -42,6 +41,8 @@ jobs:
             PRODUCT_MODULE_NAME="App3105" \
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             ONLY_ACTIVE_ARCH=NO \
+            GCC_ENABLE_OBJC_ARC=YES \
+            CLANG_ENABLE_MODULES=YES \
             clean build \
             -derivedDataPath build/DerivedData \
             2>&1 | tee build.log || true
