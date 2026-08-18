@@ -7,15 +7,18 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15.4
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      - name: Select Xcode
+        run: |
+          ls /Applications/ | grep Xcode
+          sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          xcodebuild -version
 
       - name: Setup project
         run: |
@@ -41,24 +44,19 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             clean build \
             -derivedDataPath build/DerivedData \
-            2>&1 | tee build_full.log
-          grep "error:" build_full.log | head -20 || true
-          tail -3 build_full.log
+            2>&1 | tee build.log || true
+          echo "=== ERRORS ==="
+          grep "error:" build.log | head -30 || true
+          tail -5 build.log
+          grep -q "BUILD SUCCEEDED" build.log || exit 1
 
       - name: Package IPA
         run: |
           APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
           echo "Found: $APP"
-          echo "=== App contents ==="
-          ls -lah "$APP"
-          echo "=== App size ==="
-          du -sh "$APP"
-          
+          ls -la "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
-          echo "=== Payload contents ==="
-          ls -lah Payload/3105.app
-          
           zip -r 3105-unsigned.ipa Payload/
           ls -lh 3105-unsigned.ipa
 
