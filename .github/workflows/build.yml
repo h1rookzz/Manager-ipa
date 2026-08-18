@@ -24,6 +24,7 @@ jobs:
 
       - name: Build
         run: |
+          set -o pipefail
           xcodebuild \
             -project 3105.xcodeproj \
             -scheme 3105 \
@@ -34,41 +35,35 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_HARDENED_RUNTIME=NO \
             OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
-            SWIFT_OBJC_BRIDGING_HEADER="Sources/3105-Bridging-Header.h" \
             PRODUCT_BUNDLE_IDENTIFIER="com.apple.mobile.MobileHouseArrest" \
+            PRODUCT_MODULE_NAME="App3105" \
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             ONLY_ACTIVE_ARCH=NO \
             clean build \
-            -derivedDataPath build/DerivedData 2>&1 | grep -E "error:|warning:|note:|BUILD FAILED|BUILD SUCCEEDED|SwiftCompile" | tail -60
-
-      - name: Build full output on failure
-        if: failure()
-        run: |
-          xcodebuild \
-            -project 3105.xcodeproj \
-            -scheme 3105 \
-            -configuration Release \
-            -sdk iphoneos \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ENABLE_HARDENED_RUNTIME=NO \
-            OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
-            SWIFT_OBJC_BRIDGING_HEADER="Sources/3105-Bridging-Header.h" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.apple.mobile.MobileHouseArrest" \
-            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
-            ONLY_ACTIVE_ARCH=NO \
-            build \
-            -derivedDataPath build/DerivedData 2>&1 | grep -E "error:" | head -30
-
-      - name: Find app
-        run: |
-          APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
-          echo "APP=$APP" >> $GITHUB_ENV
-          echo "Found: $APP"
+            -derivedDataPath build/DerivedData \
+            2>&1 | tee build_full.log
+          
+          echo "=== ERRORS ==="
+          grep "error:" build_full.log | head -30 || true
+          echo "=== BUILD STATUS ==="
+          tail -5 build_full.log
 
       - name: Package IPA
         run: |
+          echo "=== Searching for .app ==="
+          find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "nothing in DerivedData"
+          find . -name "*.app" -type d 2>/dev/null | grep -v ".xctoolchain\|Xcode" | head -10
+
+          APP=$(find build/DerivedData -name "3105.app" -type d 2>/dev/null | head -1)
+          echo "APP=$APP"
+          
+          if [ -z "$APP" ]; then
+            echo "ERROR: 3105.app not found"
+            ls build/DerivedData/Build/Products/ 2>/dev/null || echo "No Products dir"
+            exit 1
+          fi
+          
+          ls -la "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
           zip -r 3105-unsigned.ipa Payload/
