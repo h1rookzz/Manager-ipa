@@ -39,7 +39,27 @@ jobs:
             IPHONEOS_DEPLOYMENT_TARGET=16.0 \
             ONLY_ACTIVE_ARCH=NO \
             clean build \
-            -derivedDataPath build/DerivedData
+            -derivedDataPath build/DerivedData 2>&1 | grep -E "error:|warning:|note:|BUILD FAILED|BUILD SUCCEEDED|SwiftCompile" | tail -60
+
+      - name: Build full output on failure
+        if: failure()
+        run: |
+          xcodebuild \
+            -project 3105.xcodeproj \
+            -scheme 3105 \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ENABLE_HARDENED_RUNTIME=NO \
+            OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
+            SWIFT_OBJC_BRIDGING_HEADER="Sources/3105-Bridging-Header.h" \
+            PRODUCT_BUNDLE_IDENTIFIER="com.apple.mobile.MobileHouseArrest" \
+            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
+            ONLY_ACTIVE_ARCH=NO \
+            build \
+            -derivedDataPath build/DerivedData 2>&1 | grep -E "error:" | head -30
 
       - name: Find app
         run: |
