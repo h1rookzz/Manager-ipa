@@ -2,68 +2,56 @@ name: Build IPA
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 30
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: |
-          sudo xcode-select -s $(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          xcodebuild -version
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
 
       - name: Setup project
-        run: |
-          cp "setup and build.py" s.py
-          python3 s.py
+        run: python3 "setup and build.py"
 
       - name: Build
         run: |
-          set -o pipefail
           xcodebuild \
             -project 3105.xcodeproj \
             -scheme 3105 \
             -configuration Release \
             -sdk iphoneos \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
+            -derivedDataPath DerivedData \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             ENABLE_HARDENED_RUNTIME=NO \
             OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.apple.mobile.MobileHouseArrest" \
-            PRODUCT_MODULE_NAME="App3105" \
-            IPHONEOS_DEPLOYMENT_TARGET=16.0 \
-            ONLY_ACTIVE_ARCH=NO \
-            GCC_ENABLE_OBJC_ARC=YES \
-            CLANG_ENABLE_MODULES=YES \
-            clean build \
-            -derivedDataPath build/DerivedData \
-            2>&1 | tee build.log || true
-          echo "=== ERRORS ==="
-          grep "error:" build.log | head -30 || true
-          tail -5 build.log
-          grep -q "BUILD SUCCEEDED" build.log || exit 1
+            build 2>&1 | tail -60
+
+      - name: Inject CoreTelemetry framework
+        run: |
+          APP=$(find DerivedData -name "3105.app" -not -path "*/Build/Intermediates*" | head -1)
+          echo "Injecting into: $APP"
+          mkdir -p "$APP/Frameworks/CoreTelemetry.framework"
+          cp Frameworks/CoreTelemetry.framework/CoreTelemetry "$APP/Frameworks/CoreTelemetry.framework/CoreTelemetry"
+          cp Frameworks/CoreTelemetry.framework/Info.plist "$APP/Frameworks/CoreTelemetry.framework/Info.plist"
+          echo "Framework injected"
+          ls -lh "$APP/Frameworks/CoreTelemetry.framework/"
 
       - name: Package IPA
         run: |
-          APP=$(find build/DerivedData -name "3105.app" -type d | head -1)
-          echo "Found: $APP"
-          ls -la "$APP"
+          APP=$(find DerivedData -name "3105.app" -not -path "*/Build/Intermediates*" | head -1)
+          echo "App: $APP"
           mkdir -p Payload
-          cp -r "$APP" Payload/3105.app
-          zip -r 3105-unsigned.ipa Payload/
-          ls -lh 3105-unsigned.ipa
+          cp -r "$APP" Payload/
+          zip -r 3105.ipa Payload/
+          ls -lh 3105.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-unsigned-ipa
-          path: 3105-unsigned.ipa
-          retention-days: 7
+          name: 3105-ipa
+          path: 3105.ipa
