@@ -422,7 +422,7 @@ def gen_xcodeproj():
     }
     tgt = {**common,
         "INFOPLIST_FILE": f'"{plist_path}"',
-        "OTHER_LDFLAGS": '"-Wl,-undefined,dynamic_lookup"',
+        "OTHER_LDFLAGS": '"-Wl,-undefined,dynamic_lookup -framework XPC"',
         "PRODUCT_BUNDLE_IDENTIFIER": '"com.apple.mobile.MobileHouseArrest"',
         "PRODUCT_NAME": '"3105"',
         "PRODUCT_MODULE_NAME": '"App3105"',
