@@ -29,16 +29,11 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             ENABLE_HARDENED_RUNTIME=NO \
             OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
-            build 2>&1 | tail -60
+            build 2>&1 | grep -E "error:|warning:|BUILD|FAILED|SUCCEEDED" | tail -50
 
       - name: Package IPA
         run: |
-          echo "=== Finding app ==="
-          find DerivedData -name "*.app" -not -path "*/Build/Intermediates*" 2>/dev/null
           APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 2 | head -1)
-          if [ -z "$APP" ]; then
-            APP=$(find DerivedData -name "*.app" -not -path "*/Build/Intermediates*" | head -1)
-          fi
           echo "App: $APP"
           ls -la "$APP"
           mkdir -p Payload
