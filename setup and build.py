@@ -19788,12 +19788,16 @@ FILES = {
         'ICByZXR1cm4gLTE7Cn0K'
     ),
     'Sources/kexploit/xpaci.h': (
-        'I3ByYWdtYSBvbmNlCiNpbmNsdWRlIDxzdGRib29sLmg+CgpleHRlcm4gYm9vbCBnSXNQQUNTdXBwb3J0'
-        'ZWQ7CgpzdGF0aWMgdWludDY0X3QgX19hdHRyaWJ1dGUoKG5ha2VkKSkgX194cGFjaV9mKHVpbnQ2NF90'
-        'IGEpIHsKICAgIGFzbSgiLmxvbmcgMHhEQUMxNDNFMCIpOwogICAgYXNtKCJyZXQiKTsKfQoKc3RhdGlj'
-        'IHVpbnQ2NF90IHhwYWNpKHVpbnQ2NF90IGEpIHsKICAgIGlmICghZ0lzUEFDU3VwcG9ydGVkKSByZXR1'
-        'cm4gYTsKICAgIGlmICgoYSAmIDB4RkZGRkZGMDAwMDAwMDAwMCkgPT0gMHhGRkZGRkYwMDAwMDAwMDAw'
-        'KSByZXR1cm4gYTsKICAgIHJldHVybiBfX3hwYWNpX2YoYSk7Cn0K'
+        'I3ByYWdtYSBvbmNlCiNpbmNsdWRlIDxzdGRpbnQuaD4KI2luY2x1ZGUgPHN0ZGJvb2wuaD4KCmV4dGVy'
+        'biBib29sIGdJc1BBQ1N1cHBvcnRlZDsKdWludDY0X3QgeHBhY2kodWludDY0X3QgYSk7Cg=='
+    ),
+    'Sources/kexploit/xpaci.m': (
+        'I2luY2x1ZGUgInhwYWNpLmgiCiNpbmNsdWRlIDxzdGRpbnQuaD4KCl9fYXR0cmlidXRlX18oKG5ha2Vk'
+        'KSkgc3RhdGljIHVpbnQ2NF90IF9feHBhY2lfZih1aW50NjRfdCBhKSB7CiAgICBfX2FzbV9fKCIubG9u'
+        'ZyAweERBQzE0M0UwXG5cdHJldCIpOwp9Cgp1aW50NjRfdCB4cGFjaSh1aW50NjRfdCBhKSB7CiAgICBp'
+        'ZiAoIWdJc1BBQ1N1cHBvcnRlZCkgcmV0dXJuIGE7CiAgICBpZiAoKGEgJiAweEZGRkZGRjAwMDAwMDAw'
+        'MDBVTEwpID09IDB4RkZGRkZGMDAwMDAwMDAwMFVMTCkgcmV0dXJuIGE7CiAgICByZXR1cm4gX194cGFj'
+        'aV9mKGEpOwp9Cg=='
     ),
     'Sources/vi.lproj/Localizable.strings': (
         'ImFwcC5zdWJ0aXRsZSIgPSAiVHLDrG5oIGNo4buJbmggc+G7rWEgTW9iaWxlR2VzdGFsdCI7CiJhcHAu'
@@ -24681,6 +24685,8 @@ def gen_xcodeproj():
         "ONLY_ACTIVE_ARCH": "NO",
         "ARCHS": '"arm64"',
         "EXCLUDED_ARCHS": '"x86_64 i386"',
+        "ALWAYS_SEARCH_USER_PATHS": "NO",
+        "USE_HEADERMAP": "NO",
     }
     tgt = {**common,
         "INFOPLIST_FILE": f'"{plist_path}"',
