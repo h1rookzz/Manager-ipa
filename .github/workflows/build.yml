@@ -21,32 +21,25 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project ThreeOneOSFive.xcodeproj \
+            -project 3105.xcodeproj \
             -scheme 3105 \
-            -configuration Release \
+            -configuration TgtRelease \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath DerivedData \
-            ONLY_ACTIVE_ARCH=NO \
-            ARCHS="arm64" \
-            EXCLUDED_ARCHS="x86_64 i386" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             ENABLE_HARDENED_RUNTIME=NO \
-            SKIP_INSTALL=NO \
-            build 2>&1 | tee build.log | grep -E "error:|BUILD FAILED|BUILD SUCCEEDED" | head -50
+            build 2>&1 | tee build.log
           if grep -q "BUILD FAILED" build.log; then
-            echo "=== FULL ERROR LOG ==="
-            grep -E "error:|warning:" build.log | head -80
+            grep "error:" build.log | head -50
             exit 1
           fi
 
       - name: Package IPA
         run: |
-          APP=$(find DerivedData/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 | head -1)
-          if [ -z "$APP" ]; then
-            APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 3 | head -1)
-          fi
+          APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 3 | head -1)
           echo "App: $APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
