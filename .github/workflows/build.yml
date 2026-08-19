@@ -22,7 +22,7 @@ jobs:
           set -o pipefail
           xcodebuild \
             -project ThreeOneOSFive.xcodeproj \
-            -scheme ThreeOneOSFive \
+            -scheme 3105 \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath DerivedData \
