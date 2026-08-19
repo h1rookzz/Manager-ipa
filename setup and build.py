@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 setup and build.py
-Self-contained: writes all source files from embedded base64,
-then xcodebuild picks up ThreeOneOSFive.xcodeproj / scheme ThreeOneOSFive.
+Self-contained: writes all source files + xcodeproj + xcscheme from embedded base64.
+xcodebuild: -project ThreeOneOSFive.xcodeproj -scheme 3105
 """
 
 import os, base64
@@ -569,6 +569,55 @@ FILES = {
         'Z3VyYXRpb25Jc1Zpc2libGUgPSAwOwoJCQlkZWZhdWx0Q29uZmlndXJhdGlvbk5hbWUgPSBSZWxlYXNl'
         'OwoJCX07Ci8qIEVuZCBYQ0NvbmZpZ3VyYXRpb25MaXN0IHNlY3Rpb24gKi8KCX07Cglyb290T2JqZWN0'
         'ID0gMzEwNUE5MDA7Cn0K'
+    ),
+    'ThreeOneOSFive.xcodeproj/xcshareddata/xcschemes/3105.xcscheme': (
+        'PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPFNjaGVtZQogICBMYXN0VXBncmFk'
+        'ZVZlcnNpb24gPSAiMTUzMCIKICAgdmVyc2lvbiA9ICIxLjciPgogICA8QnVpbGRBY3Rpb24KICAgICAg'
+        'cGFyYWxsZWxpemVCdWlsZGFibGVzID0gIllFUyIKICAgICAgYnVpbGRJbXBsaWNpdERlcGVuZGVuY2ll'
+        'cyA9ICJZRVMiPgogICAgICA8QnVpbGRBY3Rpb25FbnRyaWVzPgogICAgICAgICA8QnVpbGRBY3Rpb25F'
+        'bnRyeQogICAgICAgICAgICBidWlsZEZvclRlc3RpbmcgPSAiWUVTIgogICAgICAgICAgICBidWlsZEZv'
+        'clJ1bm5pbmcgPSAiWUVTIgogICAgICAgICAgICBidWlsZEZvclByb2ZpbGluZyA9ICJZRVMiCiAgICAg'
+        'ICAgICAgIGJ1aWxkRm9yQXJjaGl2aW5nID0gIllFUyIKICAgICAgICAgICAgYnVpbGRGb3JBbmFseXpp'
+        'bmcgPSAiWUVTIj4KICAgICAgICAgICAgPEJ1aWxkYWJsZVJlZmVyZW5jZQogICAgICAgICAgICAgICBC'
+        'dWlsZGFibGVJZGVudGlmaWVyID0gInByaW1hcnkiCiAgICAgICAgICAgICAgIEJsdWVwcmludElkZW50'
+        'aWZpZXIgPSAiMzEwNUE1MDAiCiAgICAgICAgICAgICAgIEJ1aWxkYWJsZU5hbWUgPSAiMzEwNS5hcHAi'
+        'CiAgICAgICAgICAgICAgIEJsdWVwcmludE5hbWUgPSAiMzEwNSIKICAgICAgICAgICAgICAgUmVmZXJl'
+        'bmNlZENvbnRhaW5lciA9ICJjb250YWluZXI6VGhyZWVPbmVPU0ZpdmUueGNvZGVwcm9qIj4KICAgICAg'
+        'ICAgICAgPC9CdWlsZGFibGVSZWZlcmVuY2U+CiAgICAgICAgIDwvQnVpbGRBY3Rpb25FbnRyeT4KICAg'
+        'ICAgPC9CdWlsZEFjdGlvbkVudHJpZXM+CiAgIDwvQnVpbGRBY3Rpb24+CiAgIDxUZXN0QWN0aW9uCiAg'
+        'ICAgIGJ1aWxkQ29uZmlndXJhdGlvbiA9ICJEZWJ1ZyIKICAgICAgc2VsZWN0ZWREZWJ1Z2dlcklkZW50'
+        'aWZpZXIgPSAiWGNvZGUuRGVidWdnZXJGb3VuZGF0aW9uLkRlYnVnZ2VyLkxMREIiCiAgICAgIHNlbGVj'
+        'dGVkTGF1bmNoZXJJZGVudGlmaWVyID0gIlhjb2RlLkRlYnVnZ2VyRm91bmRhdGlvbi5MYXVuY2hlci5M'
+        'TERCIgogICAgICBzaG91bGRVc2VMYXVuY2hTY2hlbWVBcmdzRW52ID0gIllFUyI+CiAgICAgIDxUZXN0'
+        'YWJsZXM+CiAgICAgIDwvVGVzdGFibGVzPgogICA8L1Rlc3RBY3Rpb24+CiAgIDxMYXVuY2hBY3Rpb24K'
+        'ICAgICAgYnVpbGRDb25maWd1cmF0aW9uID0gIlJlbGVhc2UiCiAgICAgIHNlbGVjdGVkRGVidWdnZXJJ'
+        'ZGVudGlmaWVyID0gIiIKICAgICAgc2VsZWN0ZWRMYXVuY2hlcklkZW50aWZpZXIgPSAiWGNvZGUuRGVi'
+        'dWdnZXJGb3VuZGF0aW9uLkxhdW5jaGVyLkxMREIiCiAgICAgIGxhdW5jaFN0eWxlID0gIjAiCiAgICAg'
+        'IHVzZUN1c3RvbVdvcmtpbmdEaXJlY3RvcnkgPSAiTk8iCiAgICAgIGlnbm9yZXNQZXJzaXN0ZW50U3Rh'
+        'dGVPbkxhdW5jaCA9ICJOTyIKICAgICAgZGVidWdEb2N1bWVudFZlcnNpb25pbmcgPSAiWUVTIgogICAg'
+        'ICBkZWJ1Z1NlcnZpY2VFeHRlbnNpb24gPSAiaW50ZXJuYWwiCiAgICAgIGFsbG93TG9jYXRpb25TaW11'
+        'bGF0aW9uID0gIllFUyI+CiAgICAgIDxCdWlsZGFibGVQcm9kdWN0UnVubmFibGUKICAgICAgICAgcnVu'
+        'bmFibGVEZWJ1Z2dpbmdNb2RlID0gIjAiPgogICAgICAgICA8QnVpbGRhYmxlUmVmZXJlbmNlCiAgICAg'
+        'ICAgICAgIEJ1aWxkYWJsZUlkZW50aWZpZXIgPSAicHJpbWFyeSIKICAgICAgICAgICAgQmx1ZXByaW50'
+        'SWRlbnRpZmllciA9ICIzMTA1QTUwMCIKICAgICAgICAgICAgQnVpbGRhYmxlTmFtZSA9ICIzMTA1LmFw'
+        'cCIKICAgICAgICAgICAgQmx1ZXByaW50TmFtZSA9ICIzMTA1IgogICAgICAgICAgICBSZWZlcmVuY2Vk'
+        'Q29udGFpbmVyID0gImNvbnRhaW5lcjpUaHJlZU9uZU9TRml2ZS54Y29kZXByb2oiPgogICAgICAgICA8'
+        'L0J1aWxkYWJsZVJlZmVyZW5jZT4KICAgICAgPC9CdWlsZGFibGVQcm9kdWN0UnVubmFibGU+CiAgIDwv'
+        'TGF1bmNoQWN0aW9uPgogICA8UHJvZmlsZUFjdGlvbgogICAgICBidWlsZENvbmZpZ3VyYXRpb24gPSAi'
+        'UmVsZWFzZSIKICAgICAgc2hvdWxkVXNlTGF1bmNoU2NoZW1lQXJnc0VudiA9ICJZRVMiCiAgICAgIHNh'
+        'dmVkVG9vbElkZW50aWZpZXIgPSAiIgogICAgICB1c2VDdXN0b21Xb3JraW5nRGlyZWN0b3J5ID0gIk5P'
+        'IgogICAgICBkZWJ1Z0RvY3VtZW50VmVyc2lvbmluZyA9ICJZRVMiPgogICAgICA8QnVpbGRhYmxlUHJv'
+        'ZHVjdFJ1bm5hYmxlCiAgICAgICAgIHJ1bm5hYmxlRGVidWdnaW5nTW9kZSA9ICIwIj4KICAgICAgICAg'
+        'PEJ1aWxkYWJsZVJlZmVyZW5jZQogICAgICAgICAgICBCdWlsZGFibGVJZGVudGlmaWVyID0gInByaW1h'
+        'cnkiCiAgICAgICAgICAgIEJsdWVwcmludElkZW50aWZpZXIgPSAiMzEwNUE1MDAiCiAgICAgICAgICAg'
+        'IEJ1aWxkYWJsZU5hbWUgPSAiMzEwNS5hcHAiCiAgICAgICAgICAgIEJsdWVwcmludE5hbWUgPSAiMzEw'
+        'NSIKICAgICAgICAgICAgUmVmZXJlbmNlZENvbnRhaW5lciA9ICJjb250YWluZXI6VGhyZWVPbmVPU0Zp'
+        'dmUueGNvZGVwcm9qIj4KICAgICAgICAgPC9CdWlsZGFibGVSZWZlcmVuY2U+CiAgICAgIDwvQnVpbGRh'
+        'YmxlUHJvZHVjdFJ1bm5hYmxlPgogICA8L1Byb2ZpbGVBY3Rpb24+CiAgIDxBbmFseXplQWN0aW9uCiAg'
+        'ICAgIGJ1aWxkQ29uZmlndXJhdGlvbiA9ICJSZWxlYXNlIj4KICAgPC9BbmFseXplQWN0aW9uPgogICA8'
+        'QXJjaGl2ZUFjdGlvbgogICAgICBidWlsZENvbmZpZ3VyYXRpb24gPSAiUmVsZWFzZSIKICAgICAgcmV2'
+        'ZWFsQXJjaGl2ZUluT3JnYW5pemVyID0gIllFUyI+CiAgIDwvQXJjaGl2ZUFjdGlvbj4KPC9TY2hlbWU+'
+        'Cg=='
     ),
     'ThreeOneOSFive/App.swift': (
         'aW1wb3J0IFN3aWZ0VUkKaW1wb3J0IFVJS2l0CgpAbWFpbgpzdHJ1Y3QgVGhyZWVPbmVPU0ZpdmVBcHA6'
