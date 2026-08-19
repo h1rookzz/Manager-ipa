@@ -319,6 +319,7 @@ def gen_xcodeproj():
         "PRODUCT_MODULE_NAME": '"App3105"',
         "SWIFT_OBJC_BRIDGING_HEADER": f'"{bridging}"',
         "TARGETED_DEVICE_FAMILY": '"1,2"',
+        "HEADER_SEARCH_PATHS": '"$(SRCROOT)/Sources"',
         "ASSETCATALOG_COMPILER_APPICON_NAME": '""',
     }
 
