@@ -19,6 +19,7 @@ jobs:
 
       - name: Build
         run: |
+          set -o pipefail
           xcodebuild \
             -project 3105.xcodeproj \
             -scheme 3105 \
@@ -28,8 +29,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             ENABLE_HARDENED_RUNTIME=NO \
-            OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
-            build 2>&1 | grep -E "error:|warning:|BUILD|FAILED|SUCCEEDED" | tail -50
+            build 2>&1 | tail -80
 
       - name: Package IPA
         run: |
