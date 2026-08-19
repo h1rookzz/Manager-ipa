@@ -31,16 +31,6 @@ jobs:
             OTHER_LDFLAGS="-Wl,-undefined,dynamic_lookup" \
             build 2>&1 | tail -60
 
-      - name: Inject CoreTelemetry framework
-        run: |
-          APP=$(find DerivedData -name "3105.app" -not -path "*/Build/Intermediates*" | head -1)
-          echo "Injecting into: $APP"
-          mkdir -p "$APP/Frameworks/CoreTelemetry.framework"
-          cp Frameworks/CoreTelemetry.framework/CoreTelemetry "$APP/Frameworks/CoreTelemetry.framework/CoreTelemetry"
-          cp Frameworks/CoreTelemetry.framework/Info.plist "$APP/Frameworks/CoreTelemetry.framework/Info.plist"
-          echo "Framework injected"
-          ls -lh "$APP/Frameworks/CoreTelemetry.framework/"
-
       - name: Package IPA
         run: |
           APP=$(find DerivedData -name "3105.app" -not -path "*/Build/Intermediates*" | head -1)
