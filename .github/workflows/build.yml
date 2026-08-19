@@ -33,11 +33,17 @@ jobs:
 
       - name: Package IPA
         run: |
-          APP=$(find DerivedData -name "3105.app" -not -path "*/Build/Intermediates*" | head -1)
+          echo "=== Finding app ==="
+          find DerivedData -name "*.app" -not -path "*/Build/Intermediates*" 2>/dev/null
+          APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 2 | head -1)
+          if [ -z "$APP" ]; then
+            APP=$(find DerivedData -name "*.app" -not -path "*/Build/Intermediates*" | head -1)
+          fi
           echo "App: $APP"
+          ls -la "$APP"
           mkdir -p Payload
-          cp -r "$APP" Payload/
-          zip -r 3105.ipa Payload/
+          cp -r "$APP" Payload/3105.app
+          zip -qr 3105.ipa Payload/
           ls -lh 3105.ipa
 
       - name: Upload IPA
