@@ -26,16 +26,28 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath DerivedData \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS="arm64" \
+            EXCLUDED_ARCHS="x86_64 i386" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             ENABLE_HARDENED_RUNTIME=NO \
-            build 2>&1 | grep -E "error:|warning:|note:|FAILED|SUCCEEDED|BUILD" | head -100
+            SKIP_INSTALL=NO \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD FAILED|BUILD SUCCEEDED" | head -50
+          if grep -q "BUILD FAILED" build.log; then
+            echo "=== FULL ERROR LOG ==="
+            grep -E "error:|warning:" build.log | head -80
+            exit 1
+          fi
 
       - name: Package IPA
         run: |
-          APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 3 | head -1)
+          APP=$(find DerivedData/Build/Products/Release-iphoneos -name "*.app" -maxdepth 1 | head -1)
+          if [ -z "$APP" ]; then
+            APP=$(find DerivedData/Build/Products -name "*.app" -maxdepth 3 | head -1)
+          fi
           echo "App: $APP"
-          ls -la "$APP"
           mkdir -p Payload
           cp -r "$APP" Payload/3105.app
           zip -qr 3105.ipa Payload/
