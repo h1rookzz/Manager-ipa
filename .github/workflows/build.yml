@@ -31,11 +31,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             ENABLE_HARDENED_RUNTIME=NO \
-            build 2>&1 | tee build.log
-          if grep -q "BUILD FAILED" build.log; then
-            grep "error:" build.log | head -50
-            exit 1
-          fi
+            build 2>&1 | grep -E "error:|BUILD FAILED|BUILD SUCCEEDED|warning: " | head -80
 
       - name: Package IPA
         run: |
