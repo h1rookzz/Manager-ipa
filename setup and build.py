@@ -10860,9 +10860,10 @@ FILES = {
     ),
     'Sources/ThreeOneOSFive-Bridging-Header.h': (
         'I2ltcG9ydCAiZXhwbG9pdC9iYWRfcXVlcnkuaCIKI2ltcG9ydCAiZXhwbG9pdC9tY21fYnJpZGdlLmgi'
-        'CiNpbXBvcnQgImtleHBsb2l0L2tleHBsb2l0X29wYTMzNC5oIgojaW1wb3J0ICJrZXhwbG9pdC9zYW5k'
-        'Ym94X2VzY2FwZS5oIgojaW1wb3J0ICJrZXhwbG9pdC9rdXRpbHMuaCIKI2ltcG9ydCAiaGVscGVycy9B'
-        'cHBJY29uSGVscGVyLmgiCiNpbXBvcnQgImhlbHBlcnMvRGlzcGxheUlkZW50aXR5LmgiCg=='
+        'CiNpbXBvcnQgImV4cGxvaXQvTUNNRmlsemFJbnRlZ3JhdGlvbi5oIgojaW1wb3J0ICJrZXhwbG9pdC9r'
+        'ZXhwbG9pdF9vcGEzMzQuaCIKI2ltcG9ydCAia2V4cGxvaXQvc2FuZGJveF9lc2NhcGUuaCIKI2ltcG9y'
+        'dCAia2V4cGxvaXQva3V0aWxzLmgiCiNpbXBvcnQgImhlbHBlcnMvQXBwSWNvbkhlbHBlci5oIgojaW1w'
+        'b3J0ICJoZWxwZXJzL0Rpc3BsYXlJZGVudGl0eS5oIgo='
     ),
     'Sources/en.lproj/Localizable.strings': (
         'ImFwcC5zdWJ0aXRsZSIgPSAiTW9iaWxlR2VzdGFsdCBlZGl0b3IiOwoiYXBwLmNhcGFiaWxpdHlfZWRp'
@@ -12887,14 +12888,15 @@ FILES = {
         'T05fRVhQT1JUIEJPT0wgTUNNQnJpZGdlQXZhaWxhYmxlKHZvaWQpOwpGT1VOREFUSU9OX0VYUE9SVCBO'
         'U0FycmF5PE5TU3RyaW5nICo+ICpNQ01FbnVtZXJhdGVJZGVudGlmaWVyc0ZvckNsYXNzKAogICAgdWlu'
         'dDY0X3QgY29udGFpbmVyQ2xhc3MsIE5TVUludGVnZXIgbGltaXQsCiAgICBOU1N0cmluZyAqIF9OdWxs'
-        'YWJsZSAqIF9OdWxsYWJsZSBlcnJvcik7CgpOU19BU1NVTUVfTk9OTlVMTF9FTkQKCi8vIEtFUk5FTCBJ'
-        'UEEgc2hpbSDigJQg0LjRgdC/0L7Qu9GM0LfRg9C10YLRgdGPIENvbnRhaW5lclN0b3JlLnN3aWZ0CkZP'
-        'VU5EQVRJT05fRVhQT1JUIE5TU3RyaW5nICpfTnVsbGFibGUgTUNNQWN0aXZhdGVDb250YWluZXJQYXRo'
-        'KAogICAgdWludDY0X3QgY29udGFpbmVyQ2xhc3MsIE5TU3RyaW5nICppZGVudGlmaWVyLCBCT09MIGdy'
-        'b3VwLAogICAgTlNTdHJpbmcgKiBfTnVsbGFibGUgKiBfTnVsbGFibGUgZXJyb3IpOwpGT1VOREFUSU9O'
-        'X0VYUE9SVCBpbnQgTUNNQWN0aXZhdGVDb250YWluZXJQYXRoUmV0dXJuaW5nU3RhdHVzKAogICAgdWlu'
-        'dDY0X3QgY29udGFpbmVyQ2xhc3MsIE5TU3RyaW5nICppZGVudGlmaWVyLCBCT09MIGdyb3VwLAogICAg'
-        'TlNTdHJpbmcgKiBfTnVsbGFibGUgKiBfTnVsbGFibGUgZXJyb3IpOwo='
+        'YWJsZSAqIF9OdWxsYWJsZSBlcnJvcik7CgpOU19BU1NVTUVfTk9OTlVMTF9FTkQKCk5TX0FTU1VNRV9O'
+        'T05OVUxMX0JFR0lOCi8vIEtFUk5FTCBJUEEgc2hpbSDigJQg0LjRgdC/0L7Qu9GM0LfRg9C10YLRgdGP'
+        'IENvbnRhaW5lclN0b3JlLnN3aWZ0CkZPVU5EQVRJT05fRVhQT1JUIE5TU3RyaW5nICpfTnVsbGFibGUg'
+        'TUNNQWN0aXZhdGVDb250YWluZXJQYXRoKAogICAgdWludDY0X3QgY29udGFpbmVyQ2xhc3MsIE5TU3Ry'
+        'aW5nICppZGVudGlmaWVyLCBCT09MIGdyb3VwLAogICAgTlNTdHJpbmcgKiBfTnVsbGFibGUgKiBfTnVs'
+        'bGFibGUgZXJyb3IpOwpGT1VOREFUSU9OX0VYUE9SVCBpbnQgTUNNQWN0aXZhdGVDb250YWluZXJQYXRo'
+        'UmV0dXJuaW5nU3RhdHVzKAogICAgdWludDY0X3QgY29udGFpbmVyQ2xhc3MsIE5TU3RyaW5nICppZGVu'
+        'dGlmaWVyLCBCT09MIGdyb3VwLAogICAgTlNTdHJpbmcgKiBfTnVsbGFibGUgKiBfTnVsbGFibGUgZXJy'
+        'b3IpOwpOU19BU1NVTUVfTk9OTlVMTF9FTkQK'
     ),
     'Sources/exploit/mcm_bridge.m': (
         'I2ltcG9ydCAiTUNNQnJpZGdlLmgiCgojaW1wb3J0IDxkbGZjbi5oPgojaW1wb3J0IDxzdGRsaWIuaD4K'
