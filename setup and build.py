@@ -5081,7 +5081,7 @@ FILES = {
         'YXZpZ2F0aW9uVGl0bGUoIk1vZCBTa2luIikKICAgICAgICAgICAgLm5hdmlnYXRpb25CYXJUaXRsZURp'
         'c3BsYXlNb2RlKC5pbmxpbmUpCiAgICAgICAgfQogICAgfQp9Cg=='
     ),
-    'Sources/ThreeOneOSFive-Bridging-Header.h': (
+    'Sources/Kernel-Bridging-Header.h': (
         'I2ltcG9ydCAiZXhwbG9pdC9iYWRfcXVlcnkuaCIKI2ltcG9ydCAiZXhwbG9pdC9tY21fYnJpZGdlLmgi'
         'CiNpbXBvcnQgImtleHBsb2l0L2tleHBsb2l0X29wYTMzNC5oIgojaW1wb3J0ICJrZXhwbG9pdC9zYW5k'
         'Ym94X2VzY2FwZS5oIgojaW1wb3J0ICJrZXhwbG9pdC9rdXRpbHMuaCIKI2ltcG9ydCAiaGVscGVycy9B'
@@ -18249,7 +18249,7 @@ def gen_xcodeproj():
     W("/* End PBXBuildFile section */")
     W("")
     W("/* Begin PBXFileReference section */")
-    W(f"\t\t{APP_REF} = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = \"3105.app\"; sourceTree = BUILT_PRODUCTS_DIR; }};")
+    W(f"\t\t{APP_REF} = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = \"KERNEL.app\"; sourceTree = BUILT_PRODUCTS_DIR; }};")
     plist_abs = os.path.join(ROOT, "Info.plist")
     W(f"\t\t{PLIST_REF} = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = \"{plist_abs}\"; sourceTree = \"<absolute>\"; name = \"Info.plist\"; }};")
     for rel, (fid, abspath) in file_refs.items():
@@ -18275,7 +18275,7 @@ def gen_xcodeproj():
     W("/* End PBXGroup section */")
     W("")
     W("/* Begin PBXNativeTarget section */")
-    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BCL_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"3105\"; productName = \"3105\"; productReference = {APP_REF}; productType = \"com.apple.product-type.application\"; }};")
+    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BCL_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"KERNEL\"; productName = \"KERNEL\"; productReference = {APP_REF}; productType = \"com.apple.product-type.application\"; }};")
     W("/* End PBXNativeTarget section */")
     W("")
     W("/* Begin PBXProject section */")
@@ -18300,7 +18300,7 @@ def gen_xcodeproj():
         body = "\n".join(f"\t\t\t\t{k} = {v};" for k,v in settings.items())
         return cid, f"\t\t{cid} = {{isa = XCBuildConfiguration; buildSettings = {{\n{body}\n\t\t\t}}; name = {name}; }};"
 
-    bridging = os.path.join(ROOT, "Sources/ThreeOneOSFive-Bridging-Header.h")
+    bridging = os.path.join(ROOT, "Sources/Kernel-Bridging-Header.h")
     plist_path = os.path.join(ROOT, "Info.plist")
     common = {
         "CODE_SIGN_IDENTITY": '""',
@@ -18311,6 +18311,11 @@ def gen_xcodeproj():
         "SDKROOT": "iphoneos",
         "SWIFT_VERSION": "5.0",
         "ONLY_ACTIVE_ARCH": "NO",
+        "DEAD_CODE_STRIPPING": "YES",
+        "STRIP_INSTALLED_PRODUCT": "YES",
+        "COPY_PHASE_STRIP": "YES",
+        "ENABLE_NS_ASSERTIONS": "NO",
+        "ENABLE_TESTABILITY": "NO",
         "ARCHS": '"arm64"',
         "EXCLUDED_ARCHS": '"x86_64 i386"',
         "ALWAYS_SEARCH_USER_PATHS": "NO",
@@ -18319,17 +18324,17 @@ def gen_xcodeproj():
     tgt = {**common,
         "INFOPLIST_FILE": f'"{plist_path}"',
         "OTHER_LDFLAGS": '"-Wl,-undefined,dynamic_lookup"',
-        "PRODUCT_BUNDLE_IDENTIFIER": '"com.apple.mobile.MobileHouseArrest"',
-        "PRODUCT_NAME": '"3105"',
-        "PRODUCT_MODULE_NAME": '"App3105"',
+        "PRODUCT_BUNDLE_IDENTIFIER": '"com.kernel.ipa"',
+        "PRODUCT_NAME": '"KERNEL"',
+        "PRODUCT_MODULE_NAME": '"Kernel"',
         "SWIFT_OBJC_BRIDGING_HEADER": f'"{bridging}"',
         "TARGETED_DEVICE_FAMILY": '"1,2"',
     }
 
     pd_id, pd = make_cfg("Debug",      {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"'})
-    pr_id, pr = make_cfg("Release",    {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES"})
+    pr_id, pr = make_cfg("Release",    {**common, "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "SWIFT_COMPILATION_MODE": '"wholemodule"', "DEBUG_INFORMATION_FORMAT": '"dwarf-with-dsym"', "VALIDATE_PRODUCT": "YES"})
     td_id, td = make_cfg("TgtDebug",   {**tgt,    "SWIFT_OPTIMIZATION_LEVEL": '"-Onone"'})
-    tr_id, tr = make_cfg("TgtRelease", {**tgt,    "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "VALIDATE_PRODUCT": "YES"})
+    tr_id, tr = make_cfg("TgtRelease", {**tgt,    "SWIFT_OPTIMIZATION_LEVEL": '"-O"', "SWIFT_COMPILATION_MODE": '"wholemodule"', "DEBUG_INFORMATION_FORMAT": '"dwarf-with-dsym"', "VALIDATE_PRODUCT": "YES"})
 
     W("/* Begin XCBuildConfiguration section */")
     W(pd); W(pr); W(td); W(tr)
@@ -18345,7 +18350,7 @@ def gen_xcodeproj():
     W("}")
 
     pbxproj = "\n".join(L)
-    proj_dir = os.path.join(ROOT, "3105.xcodeproj")
+    proj_dir = os.path.join(ROOT, "KERNEL.xcodeproj")
     os.makedirs(proj_dir, exist_ok=True)
     with open(os.path.join(proj_dir, "project.pbxproj"), "w") as f:
         f.write(pbxproj)
@@ -18357,21 +18362,21 @@ def gen_xcodeproj():
    <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
       <BuildActionEntries>
          <BuildActionEntry buildForArchiving="YES" buildForRunning="YES" buildForTesting="YES" buildForProfiling="YES" buildForAnalyzing="YES">
-            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="3105.app" BlueprintName="3105" ReferencedContainer="container:3105.xcodeproj"/>
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="KERNEL.app" BlueprintName="KERNEL" ReferencedContainer="container:KERNEL.xcodeproj"/>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <LaunchAction buildConfiguration="Release" selectedDebuggerIdentifier="" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES">
       <BuildableProductRunnable runnableDebuggingMode="0">
-         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="3105.app" BlueprintName="3105" ReferencedContainer="container:3105.xcodeproj"/>
+         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="KERNEL.app" BlueprintName="KERNEL" ReferencedContainer="container:KERNEL.xcodeproj"/>
       </BuildableProductRunnable>
    </LaunchAction>
    <ArchiveAction buildConfiguration="Release" revealArchiveInOrganizer="YES"/>
 </Scheme>'''
-    with open(os.path.join(scheme_dir, "3105.xcscheme"), "w") as f:
+    with open(os.path.join(scheme_dir, "KERNEL.xcscheme"), "w") as f:
         f.write(scheme)
 
-    print(f"[setup] Generated 3105.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons")
+    print(f"[setup] Generated KERNEL.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons")
 
 if __name__ == "__main__":
     print("=== setup and build.py ===")
