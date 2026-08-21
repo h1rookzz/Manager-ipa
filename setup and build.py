@@ -18376,22 +18376,7 @@ def gen_xcodeproj():
     with open(os.path.join(scheme_dir, "KERNEL.xcscheme"), "w") as f:
         f.write(scheme)
 
-    # Compatibility alias for existing GitHub Actions workflows that still call -project 3105.xcodeproj.
-    # The target and product inside remain KERNEL; this alias only preserves the old project path/scheme lookup.
-    compat_proj_dir = os.path.join(ROOT, "3105.xcodeproj")
-    if os.path.isdir(compat_proj_dir):
-        shutil.rmtree(compat_proj_dir)
-    elif os.path.exists(compat_proj_dir):
-        os.remove(compat_proj_dir)
-    shutil.copytree(proj_dir, compat_proj_dir)
-    compat_scheme_dir = os.path.join(compat_proj_dir, "xcshareddata", "xcschemes")
-    kernel_scheme = os.path.join(compat_scheme_dir, "KERNEL.xcscheme")
-    legacy_scheme = os.path.join(compat_scheme_dir, "3105.xcscheme")
-    if os.path.exists(kernel_scheme):
-        shutil.copy2(kernel_scheme, legacy_scheme)
-        os.remove(kernel_scheme)
-
-    print(f"[setup] Generated KERNEL.xcodeproj and compatibility 3105.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons")
+    print(f"[setup] Generated KERNEL.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons")
 
 if __name__ == "__main__":
     print("=== setup and build.py ===")
