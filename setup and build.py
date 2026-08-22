@@ -18176,6 +18176,118 @@ FILES = {
 
 ICONS = ['AppIcon.png', 'KernelLogo.png']
 
+
+def _patch_generated_localization():
+    translations = {
+        'en': {
+            'common.back': 'Back',
+            'common.next': 'Next',
+            'common.finish': 'Finish',
+            'common.close': 'Close',
+            'common.done': 'Done',
+            'common.ok': 'OK',
+            'common.cancel': 'Cancel',
+            'common.failed': 'Error',
+            'common.version': 'Version',
+            'onboarding.install_ok': 'Installation complete',
+            'onboarding.install_bad': 'Installation failed',
+            'onboarding.install_jailbreak': 'Jailbreak is required',
+            'supported.title': 'SUPPORTED iOS',
+            'supported.subtitle': 'VERIFIED BUILDS ONLY',
+            'supported.this_device': 'THIS DEVICE: iOS %@ (%@)',
+        },
+        'ru': {
+            'common.back': 'Назад',
+            'common.next': 'Далее',
+            'common.finish': 'Готово',
+            'common.close': 'Закрыть',
+            'common.done': 'Готово',
+            'common.ok': 'ОК',
+            'common.cancel': 'Отмена',
+            'common.failed': 'Ошибка',
+            'common.version': 'Версия',
+            'onboarding.install_ok': 'Установка завершена',
+            'onboarding.install_bad': 'Ошибка установки',
+            'onboarding.install_jailbreak': 'Требуется jailbreak',
+            'supported.title': 'ПОДДЕРЖИВАЕМАЯ iOS',
+            'supported.subtitle': 'ТОЛЬКО ПРОВЕРЕННЫЕ СБОРКИ',
+            'supported.this_device': 'ЭТО УСТРОЙСТВО: iOS %@ (%@)',
+        },
+    }
+
+    # Ensure every localization file contains the navigation/status strings.
+    for language, values in translations.items():
+        path = os.path.join(ROOT, 'Sources', f'{language}.lproj', 'Localizable.strings')
+        if not os.path.exists(path):
+            continue
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = f.read().splitlines()
+        keys = set(values)
+        kept = [line for line in lines if not any(line.lstrip().startswith(f'"{key}"') for key in keys)]
+        kept.extend(f'"{key}" = "{value}";' for key, value in values.items())
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(chr(10).join(kept) + chr(10))
+
+    # Add a runtime fallback so a missing resource key never appears on screen.
+    helper = os.path.join(ROOT, 'Sources', 'helpers', 'Localization.swift')
+    if not os.path.exists(helper):
+        return
+    with open(helper, 'r', encoding='utf-8') as f:
+        source = f.read()
+    start = source.find('    func text(_ key: String) -> String {')
+    end = source.find('    func text(_ key: String, _ arguments:', start)
+    if start < 0 or end < 0:
+        return
+    fallback = '''    func text(_ key: String) -> String {
+        let localized = localizedBundle.localizedString(forKey: key, value: nil, table: nil)
+        if localized != key { return localized }
+        let values: [String: String] = {
+            switch self {
+            case .russian:
+                return [
+                    "common.back": "Назад",
+                    "common.next": "Далее",
+                    "common.finish": "Готово",
+                    "common.close": "Закрыть",
+                    "common.done": "Готово",
+                    "common.ok": "ОК",
+                    "common.cancel": "Отмена",
+                    "common.failed": "Ошибка",
+                    "common.version": "Версия",
+                    "onboarding.install_ok": "Установка завершена",
+                    "onboarding.install_bad": "Ошибка установки",
+                    "onboarding.install_jailbreak": "Требуется jailbreak",
+                    "supported.title": "ПОДДЕРЖИВАЕМАЯ iOS",
+                    "supported.subtitle": "ТОЛЬКО ПРОВЕРЕННЫЕ СБОРКИ",
+                ]
+            case .english:
+                return [
+                    "common.back": "Back",
+                    "common.next": "Next",
+                    "common.finish": "Finish",
+                    "common.close": "Close",
+                    "common.done": "Done",
+                    "common.ok": "OK",
+                    "common.cancel": "Cancel",
+                    "common.failed": "Error",
+                    "common.version": "Version",
+                    "onboarding.install_ok": "Installation complete",
+                    "onboarding.install_bad": "Installation failed",
+                    "onboarding.install_jailbreak": "Jailbreak is required",
+                    "supported.title": "SUPPORTED iOS",
+                    "supported.subtitle": "VERIFIED BUILDS ONLY",
+                ]
+            }
+        }()
+        return values[key] ?? key
+    }
+
+'''
+    source = source[:start] + fallback + source[end:]
+    with open(helper, 'w', encoding='utf-8') as f:
+        f.write(source)
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -18183,17 +18295,23 @@ def write_files():
         dst = os.path.join(ROOT, rel)
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         with open(dst, 'wb') as f: f.write(data)
-    print(f'[setup] Wrote {len(FILES)} files')
+    _patch_generated_localization()
+    print(f'[setup] Wrote {len(FILES)} files and repaired localization')
+
 
 def collect_sources():
-    swift, headers = [], []
+    swift, headers, resources = [], [], []
     src = os.path.join(ROOT, 'Sources')
     for dirpath, _, filenames in os.walk(src):
         for f in filenames:
             p = os.path.join(dirpath, f)
-            if f.endswith('.swift') or f.endswith('.m') or f.endswith('.c'): swift.append(p)
-            elif f.endswith('.h'): headers.append(p)
-    return sorted(swift), sorted(headers)
+            if f.endswith('.swift') or f.endswith('.m') or f.endswith('.c'):
+                swift.append(p)
+            elif f.endswith('.h'):
+                headers.append(p)
+            elif f.endswith('.strings'):
+                resources.append(p)
+    return sorted(swift), sorted(headers), sorted(resources)
 
 
 def gen_xcodeproj():
@@ -18211,14 +18329,29 @@ def gen_xcodeproj():
     PLIST_REF = uid("INFOPLIST_FILE")
     PLIST_BF  = uid("BUILDFILE_PLIST")
 
-    swift_files, header_files = collect_sources()
+    swift_files, header_files, resource_files = collect_sources()
     file_refs, build_files = {}, {}
+    resource_refs, resource_bfs = {}, {}
     for path in swift_files + header_files:
         rel = os.path.relpath(path, ROOT)
         fid = uid("FILEREF_" + rel)
         bid = uid("BUILDFILE_" + rel)
         file_refs[rel] = (fid, path)
         build_files[rel] = bid
+    for path in resource_files:
+        rel = os.path.relpath(path, ROOT)
+        fid = uid("FILEREF_" + rel)
+        bid = uid("BUILDFILE_" + rel)
+        resource_refs[rel] = (fid, path)
+        resource_bfs[rel] = bid
+
+    localized_resource_rels = {
+        rel for rel in resource_refs
+        if rel.endswith('/en.lproj/Localizable.strings') or rel.endswith('/ru.lproj/Localizable.strings')
+    }
+    localized_children = [resource_refs[rel][0] for rel in sorted(localized_resource_rels)]
+    localized_group_id = uid('VARIANT_Localizable.strings')
+    localized_build_id = uid('BUILDFILE_VARIANT_Localizable.strings')
 
     icon_refs, icon_bfs = {}, {}
     for icon_name in ICONS:
@@ -18243,6 +18376,14 @@ def gen_xcodeproj():
         fid = file_refs[rel][0]
         name = os.path.basename(rel)
         W(f"\t\t{bid} /* {name} in Sources */ = {{isa = PBXBuildFile; fileRef = {fid}; }};")
+    for rel, bid in resource_bfs.items():
+        if rel in localized_resource_rels:
+            continue
+        fid = resource_refs[rel][0]
+        name = os.path.basename(rel)
+        W(f"\t\t{bid} /* {name} in Resources */ = {{isa = PBXBuildFile; fileRef = {fid}; }};")
+    if localized_children:
+        W(f"\t\t{localized_build_id} /* Localizable.strings in Resources */ = {{isa = PBXBuildFile; fileRef = {localized_group_id}; }};")
     for icon_name, bid in icon_bfs.items():
         fid = icon_refs[icon_name][0]
         W(f"\t\t{bid} /* {icon_name} in Resources */ = {{isa = PBXBuildFile; fileRef = {fid}; }};")
@@ -18259,10 +18400,19 @@ def gen_xcodeproj():
         elif rel.endswith(".c"):   ft = "sourcecode.c.c"
         else:                      ft = "sourcecode.c.h"
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ft}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
+    for rel, (fid, abspath) in resource_refs.items():
+        name = os.path.basename(rel)
+        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     for icon_name, (fid, abspath) in icon_refs.items():
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = image.png; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{icon_name}\"; }};")
     W("/* End PBXFileReference section */")
     W("")
+    if localized_children:
+        W("/* Begin PBXVariantGroup section */")
+        child_ids = ",".join(localized_children)
+        W(f"\t\t{localized_group_id} = {{isa = PBXVariantGroup; children = ({child_ids},); name = Localizable.strings; sourceTree = \"<group>\"; }};")
+        W("/* End PBXVariantGroup section */")
+        W("")
     W("/* Begin PBXFrameworksBuildPhase section */")
     W(f"\t\t{FRAMEWORKS_PHASE} = {{isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; }};")
     W("/* End PBXFrameworksBuildPhase section */")
@@ -18270,7 +18420,10 @@ def gen_xcodeproj():
     W("/* Begin PBXGroup section */")
     W(f"\t\t{MAIN_GROUP} = {{isa = PBXGroup; children = ({SOURCES_GROUP},{PLIST_REF},{PRODUCTS_GROUP},); sourceTree = \"<group>\"; }};")
     src_children = "".join(f"\t\t\t{fid} /* {os.path.basename(rel)} */,\n" for rel,(fid,_) in file_refs.items())
-    W(f"\t\t{SOURCES_GROUP} = {{isa = PBXGroup; children = (\n{src_children}\t\t); name = Sources; sourceTree = \"<group>\"; }};")
+    resource_children = "".join(f"\t\t\t{fid} /* {os.path.basename(rel)} */,\n" for rel,(fid,_) in resource_refs.items() if rel not in localized_resource_rels)
+    if localized_children:
+        resource_children += f"\t\t\t{localized_group_id} /* Localizable.strings */,\n"
+    W(f"\t\t{SOURCES_GROUP} = {{isa = PBXGroup; children = (\n{src_children}{resource_children}\t\t); name = Sources; sourceTree = \"<group>\"; }};")
     W(f"\t\t{PRODUCTS_GROUP} = {{isa = PBXGroup; children = ({APP_REF},); name = Products; sourceTree = \"<group>\"; }};")
     W("/* End PBXGroup section */")
     W("")
@@ -18279,11 +18432,16 @@ def gen_xcodeproj():
     W("/* End PBXNativeTarget section */")
     W("")
     W("/* Begin PBXProject section */")
-    W(f"\t\t{PROJECT_ID} = {{isa = PBXProject; attributes = {{LastSwiftUpdateCheck = 1540; LastUpgradeCheck = 1540; TargetAttributes = {{{NATIVE_TARGET} = {{CreatedOnToolsVersion = 15.4; }}; }}; }}; buildConfigurationList = {BCL_PROJECT}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base,); mainGroup = {MAIN_GROUP}; productRefGroup = {PRODUCTS_GROUP}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({NATIVE_TARGET},); }};")
+    W(f"\t\t{PROJECT_ID} = {{isa = PBXProject; attributes = {{LastSwiftUpdateCheck = 1540; LastUpgradeCheck = 1540; TargetAttributes = {{{NATIVE_TARGET} = {{CreatedOnToolsVersion = 15.4; }}; }}; }}; buildConfigurationList = {BCL_PROJECT}; compatibilityVersion = \"Xcode 14.0\"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,ru,Base,); mainGroup = {MAIN_GROUP}; productRefGroup = {PRODUCTS_GROUP}; projectDirPath = \"\"; projectRoot = \"\"; targets = ({NATIVE_TARGET},); }};")
     W("/* End PBXProject section */")
     W("")
     W("/* Begin PBXResourcesBuildPhase section */")
     res_files = ""
+    for rel, bid in resource_bfs.items():
+        if rel not in localized_resource_rels:
+            res_files += f"\t\t\t{bid} /* {os.path.basename(rel)} in Resources */,\n"
+    if localized_children:
+        res_files += f"\t\t\t{localized_build_id} /* Localizable.strings in Resources */,\n"
     for icon_name, bid in icon_bfs.items():
         res_files += f"\t\t\t{bid} /* {icon_name} in Resources */,\n"
     W(f"\t\t{RESOURCES_PHASE} = {{isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (\n{res_files}\t\t); runOnlyForDeploymentPostprocessing = 0; }};")
@@ -18376,7 +18534,7 @@ def gen_xcodeproj():
     with open(os.path.join(scheme_dir, "KERNEL.xcscheme"), "w") as f:
         f.write(scheme)
 
-    print(f"[setup] Generated KERNEL.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons")
+    print(f"[setup] Generated KERNEL.xcodeproj: {len(swift_files)} sources, {len(resource_files)} localized resources, {len(ICONS)} icons")
 
 if __name__ == "__main__":
     print("=== setup and build.py ===")
