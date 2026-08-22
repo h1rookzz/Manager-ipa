@@ -18195,6 +18195,43 @@ def _patch_generated_localization():
             'supported.title': 'SUPPORTED iOS',
             'supported.subtitle': 'VERIFIED BUILDS ONLY',
             'supported.this_device': 'THIS DEVICE: iOS %@ (%@)',
+            'settings.device_info': 'DEVICE INFO',
+            'settings.model': 'Model',
+            'settings.ios': 'iOS',
+            'settings.status': 'Status',
+            'settings.language': 'LANGUAGE',
+            'settings.accent_color': 'ACCENT COLOR',
+            'settings.theme': 'THEME',
+            'settings.dark': 'Dark',
+            'settings.light': 'Light',
+            'settings.color.blue': 'Blue',
+            'settings.color.red': 'Red',
+            'settings.color.yellow': 'Yellow',
+            'settings.color.black': 'Black',
+            'settings.account': 'ACCOUNT',
+            'settings.logout': 'Log Out',
+            'settings.links': 'OUR LINKS',
+            'settings.owner_channel': 'Telegram Owner Channel',
+            'settings.bot_channel': 'BOT TELEGRAM KERNEL',
+            'settings.logout_title': 'Log out of KERNEL?',
+            'settings.logout_message': 'The saved key and Remember session will be removed from this device.',
+            'nav.inject': 'Inject',
+            'nav.mod_skin': 'Mod Skin',
+            'nav.settings': 'Settings',
+            'status.supported': 'Supported',
+            'status.unsupported': 'Unsupported',
+            'onboarding.choose_language': 'CHOOSE LANGUAGE',
+            'onboarding.select_language': 'SELECT YOUR PREFERRED LANGUAGE',
+            'onboarding.welcome_title': 'WELCOME TO KERNEL IPA',
+            'onboarding.team': 'WE ARE THE KERNEL TEAM',
+            'onboarding.description': 'KERNEL IPA IS A PROFESSIONAL FREE FIRE PATCH TOOL FOR IOS. WE PROVIDE POWERFUL INJECTION TOOLS WITH A CLEAN AND FAST INTERFACE.',
+            'onboarding.security': 'OFFICIAL KERNEL SECURITY SYSTEM',
+            'supported.title': 'SUPPORTED iOS',
+            'supported.subtitle': 'VERIFIED BUILDS ONLY',
+            'certificate.title': 'CERTIFICATE SETUP',
+            'certificate.subtitle': 'REQUIRED FOR INJECTION',
+            'modskin.title': 'MOD SKIN',
+            'modskin.coming_soon': 'Coming soon',
         },
         'ru': {
             'common.back': 'Назад',
@@ -18212,6 +18249,43 @@ def _patch_generated_localization():
             'supported.title': 'ПОДДЕРЖИВАЕМАЯ iOS',
             'supported.subtitle': 'ТОЛЬКО ПРОВЕРЕННЫЕ СБОРКИ',
             'supported.this_device': 'ЭТО УСТРОЙСТВО: iOS %@ (%@)',
+            'settings.device_info': 'ИНФОРМАЦИЯ ОБ УСТРОЙСТВЕ',
+            'settings.model': 'Модель',
+            'settings.ios': 'iOS',
+            'settings.status': 'Статус',
+            'settings.language': 'ЯЗЫК',
+            'settings.accent_color': 'ЦВЕТ АКЦЕНТА',
+            'settings.theme': 'ТЕМА',
+            'settings.dark': 'Тёмная',
+            'settings.light': 'Светлая',
+            'settings.color.blue': 'Синий',
+            'settings.color.red': 'Красный',
+            'settings.color.yellow': 'Жёлтый',
+            'settings.color.black': 'Чёрный',
+            'settings.account': 'АККАУНТ',
+            'settings.logout': 'Выйти',
+            'settings.links': 'НАШИ ССЫЛКИ',
+            'settings.owner_channel': 'Официальный канал Telegram',
+            'settings.bot_channel': 'Telegram-бот KERNEL',
+            'settings.logout_title': 'Выйти из KERNEL?',
+            'settings.logout_message': 'Сохранённый ключ и сессия Remember будут удалены с этого устройства.',
+            'nav.inject': 'Инжект',
+            'nav.mod_skin': 'Мод-скины',
+            'nav.settings': 'Настройки',
+            'status.supported': 'Поддерживается',
+            'status.unsupported': 'Не поддерживается',
+            'onboarding.choose_language': 'ВЫБЕРИТЕ ЯЗЫК',
+            'onboarding.select_language': 'ВЫБЕРИТЕ ПРЕДПОЧТИТЕЛЬНЫЙ ЯЗЫК',
+            'onboarding.welcome_title': 'ДОБРО ПОЖАЛОВАТЬ В KERNEL IPA',
+            'onboarding.team': 'МЫ — КОМАНДА KERNEL',
+            'onboarding.description': 'KERNEL IPA — ПРОФЕССИОНАЛЬНЫЙ ИНСТРУМЕНТ ДЛЯ FREE FIRE НА iOS. МОЩНЫЕ ИНСТРУМЕНТЫ С ЧИСТЫМ И БЫСТРЫМ ИНТЕРФЕЙСОМ.',
+            'onboarding.security': 'ОФИЦИАЛЬНАЯ СИСТЕМА БЕЗОПАСНОСТИ KERNEL',
+            'supported.title': 'ПОДДЕРЖИВАЕМАЯ iOS',
+            'supported.subtitle': 'ТОЛЬКО ПРОВЕРЕННЫЕ СБОРКИ',
+            'certificate.title': 'НАСТРОЙКА СЕРТИФИКАТА',
+            'certificate.subtitle': 'ТРЕБУЕТСЯ ДЛЯ INJECT',
+            'modskin.title': 'МОД-СКИНЫ',
+            'modskin.coming_soon': 'Скоро будет',
         },
     }
 
@@ -18286,6 +18360,67 @@ def _patch_generated_localization():
     source = source[:start] + fallback + source[end:]
     with open(helper, 'w', encoding='utf-8') as f:
         f.write(source)
+
+    # Convert hard-coded Settings/navigation labels to the selected language.
+    source_patches = {
+        'Sources/ContentView.swift': {
+            'Label("Inject", systemImage: "syringe.fill")': 'Label(language.text("nav.inject"), systemImage: "syringe.fill")',
+            'Label("Mod Skin", systemImage: "paintbrush.fill")': 'Label(language.text("nav.mod_skin"), systemImage: "paintbrush.fill")',
+            'Label("Settings", systemImage: "gearshape.fill")': 'Label(language.text("nav.settings"), systemImage: "gearshape.fill")',
+            'Text("MOD SKIN")': 'Text(language.text("modskin.title"))',
+            'Text("Coming soon")': 'Text(language.text("modskin.coming_soon"))',
+            '.navigationTitle("Mod Skin")': '.navigationTitle(language.text("nav.mod_skin"))',
+            'struct KernelModSkinView: View {': 'struct KernelModSkinView: View {' + chr(10) + '    @Environment(\\.appLanguage) private var language',
+        },
+        'Sources/views/OnboardingView.swift': {
+            'Text("CHOOSE LANGUAGE")': 'Text(language.text("onboarding.choose_language"))',
+            'Text("SELECT YOUR PREFERRED LANGUAGE")': 'Text(language.text("onboarding.select_language"))',
+            'Text("WELCOME TO KERNEL IPA")': 'Text(language.text("onboarding.welcome_title"))',
+            'Text("WE ARE THE KERNEL TEAM")': 'Text(language.text("onboarding.team"))',
+            'Text("KERNEL IPA IS A PROFESSIONAL FREE FIRE PATCH TOOL FOR IOS. WE PROVIDE POWERFUL INJECTION TOOLS WITH A CLEAN AND FAST INTERFACE.")': 'Text(language.text("onboarding.description"))',
+            'Text("OFFICIAL KERNEL SECURITY SYSTEM")': 'Text(language.text("onboarding.security"))',
+            'Text("SUPPORTED iOS")': 'Text(language.text("supported.title"))',
+            'Text("VERIFIED BUILDS ONLY")': 'Text(language.text("supported.subtitle"))',
+            'Text("CERTIFICATE SETUP")': 'Text(language.text("certificate.title"))',
+            'Text("REQUIRED FOR INJECTION")': 'Text(language.text("certificate.subtitle"))',
+        },
+        'Sources/views/SettingsView.swift': {
+            'Section("DEVICE INFO")': 'Section(header: Text(language.text("settings.device_info")))',
+            'LabelledContent("Model",': 'LabelledContent(language.text("settings.model"),',
+            'LabelledContent("iOS",': 'LabelledContent(language.text("settings.ios"),',
+            'Text("Status")': 'Text(language.text("settings.status"))',
+            'appState.isSupported ? "✅ Supported" : "⚠️ Unsupported"': 'appState.isSupported ? language.text("status.supported") : language.text("status.unsupported")',
+            'Section("LANGUAGE")': 'Section(header: Text(language.text("settings.language")))',
+            'Section("ACCENT COLOR")': 'Section(header: Text(language.text("settings.accent_color")))',
+            'Section("THEME")': 'Section(header: Text(language.text("settings.theme")))',
+            'Text("Dark")': 'Text(language.text("settings.dark"))',
+            'Text("Light")': 'Text(language.text("settings.light"))',
+            'Text(c.localizedName)': 'Text(language.text("settings.color.\\(c.rawValue)"))',
+            'Section("ACCOUNT")': 'Section(header: Text(language.text("settings.account")))',
+            'Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")': 'Label(language.text("settings.logout"), systemImage: "rectangle.portrait.and.arrow.right")',
+            'Section("OUR LINKS")': 'Section(header: Text(language.text("settings.links")))',
+            'Text("Telegram Owner Channel")': 'Text(language.text("settings.owner_channel"))',
+            'Text("BOT TELEGRAM KERNEL")': 'Text(language.text("settings.bot_channel"))',
+            '.confirmationDialog("Log out of KERNEL?",': '.confirmationDialog(language.text("settings.logout_title"),',
+            'Button("Log Out", role: .destructive)': 'Button(language.text("settings.logout"), role: .destructive)',
+            'Button("Cancel", role: .cancel)': 'Button(language.text("common.cancel"), role: .cancel)',
+            'Text("The saved key and Remember session will be removed from this device.")': 'Text(language.text("settings.logout_message"))',
+        },
+    }
+    for rel, replacements in source_patches.items():
+        path = os.path.join(ROOT, rel)
+        if not os.path.exists(path):
+            continue
+        with open(path, 'r', encoding='utf-8') as f:
+            text = f.read()
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        if rel == 'Sources/views/OnboardingView.swift':
+            old_device = 'Text("THIS DEVICE: iOS ' + chr(92) + '(AppInfo.osVersion) (' + chr(92) + '(AppInfo.osBuild))")'
+            new_device = 'Text(language.text("supported.this_device", AppInfo.osVersion, AppInfo.osBuild))'
+            text = text.replace(old_device, new_device)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(text)
 
 
 def write_files():
