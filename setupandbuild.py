@@ -48611,43 +48611,33 @@ struct LicenseStatusCard: View {
     @State private var pulse = false
 
     private var accent: Color { AppTheme.accent }
-
-    private var countdownText: String? {
-        guard let snapshot = store.snapshot, !snapshot.global, let expiry = snapshot.expiresAt else { return nil }
+    private var hasLicense: Bool { store.snapshot != nil }
+    private var statusText: String {
+        hasLicense ? language.text("license.active") : language.text("license.not_available")
+    }
+    private var remainingText: String {
+        guard let snapshot = store.snapshot else { return language.text("license.not_available") }
+        if snapshot.global { return language.text("license.lifetime") }
+        guard let expiry = snapshot.expiresAt else { return language.text("license.not_available") }
         let seconds = max(0, Int(expiry.timeIntervalSince(now)))
-        guard seconds > 0 else { return language.text("license.expired") }
+        if seconds == 0 { return language.text("license.expired") }
         let days = seconds / 86_400
         let hours = (seconds % 86_400) / 3_600
         let minutes = (seconds % 3_600) / 60
         let remainingSeconds = seconds % 60
         return language.text("license.remaining", Int64(days), Int64(hours), Int64(minutes), Int64(remainingSeconds))
     }
-
-    @ViewBuilder private var licenseValue: some View {
-        if let snapshot = store.snapshot {
-            if snapshot.global {
-                Text(language.text("license.lifetime"))
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundStyle(.green)
-            } else if let value = countdownText {
-                Text(value)
-                    .font(.system(size: 20, weight: .black, design: .monospaced))
-                    .foregroundStyle(value == language.text("license.expired") ? .red : accent)
-            }
-            if !snapshot.features.isEmpty {
-                Text(snapshot.features.joined(separator: " · "))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-            Text(language.text("license.last_sync", snapshot.syncedAt.formatted(date: .omitted, time: .shortened)))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        } else {
-            Text(language.text("license.not_available"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
+    private var remainingColor: Color {
+        guard let snapshot = store.snapshot, !snapshot.global,
+              let expiry = snapshot.expiresAt else { return hasLicense ? .green : .secondary }
+        return expiry.timeIntervalSince(now) > 0 ? accent : .red
+    }
+    private var featureText: String {
+        store.snapshot?.features.joined(separator: " · ") ?? ""
+    }
+    private var syncText: String {
+        guard let value = store.snapshot else { return "" }
+        return language.text("license.last_sync", value.syncedAt.formatted(date: .omitted, time: .shortened))
     }
 
     var body: some View {
@@ -48662,18 +48652,32 @@ struct LicenseStatusCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(language.text("license.title"))
                         .font(.system(size: 13, weight: .bold))
-                    Text(store.snapshot == nil ? language.text("license.not_available") : language.text("license.active"))
+                    Text(statusText)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(store.snapshot == nil ? .secondary : .green)
+                        .foregroundStyle(hasLicense ? .green : .secondary)
                 }
                 Spacer()
                 Circle()
-                    .fill(store.snapshot == nil ? Color.gray : Color.green)
+                    .fill(hasLicense ? Color.green : Color.gray)
                     .frame(width: 9, height: 9)
-                    .scaleEffect(pulse && store.snapshot != nil ? 1.25 : 1.0)
+                    .scaleEffect(pulse && hasLicense ? 1.25 : 1.0)
             }
 
-            licenseValue
+            Text(remainingText)
+                .font(.system(size: 20, weight: .black, design: .monospaced))
+                .foregroundStyle(remainingColor)
+
+            if !featureText.isEmpty {
+                Text(featureText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            if !syncText.isEmpty {
+                Text(syncText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(14)
         .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
