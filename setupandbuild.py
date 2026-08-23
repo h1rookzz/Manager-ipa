@@ -48612,6 +48612,44 @@ struct LicenseStatusCard: View {
 
     private var accent: Color { AppTheme.accent }
 
+    private var countdownText: String? {
+        guard let snapshot = store.snapshot, !snapshot.global, let expiry = snapshot.expiresAt else { return nil }
+        let seconds = max(0, Int(expiry.timeIntervalSince(now)))
+        guard seconds > 0 else { return language.text("license.expired") }
+        let days = seconds / 86_400
+        let hours = (seconds % 86_400) / 3_600
+        let minutes = (seconds % 3_600) / 60
+        let remainingSeconds = seconds % 60
+        return language.text("license.remaining", Int64(days), Int64(hours), Int64(minutes), Int64(remainingSeconds))
+    }
+
+    @ViewBuilder private var licenseValue: some View {
+        if let snapshot = store.snapshot {
+            if snapshot.global {
+                Text(language.text("license.lifetime"))
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .foregroundStyle(.green)
+            } else if let value = countdownText {
+                Text(value)
+                    .font(.system(size: 20, weight: .black, design: .monospaced))
+                    .foregroundStyle(value == language.text("license.expired") ? .red : accent)
+            }
+            if !snapshot.features.isEmpty {
+                Text(snapshot.features.joined(separator: " · "))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Text(language.text("license.last_sync", snapshot.syncedAt.formatted(date: .omitted, time: .shortened)))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        } else {
+            Text(language.text("license.not_available"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
@@ -48635,42 +48673,7 @@ struct LicenseStatusCard: View {
                     .scaleEffect(pulse && store.snapshot != nil ? 1.25 : 1.0)
             }
 
-            if let snapshot = store.snapshot {
-                if snapshot.global {
-                    Text(language.text("license.lifetime"))
-                        .font(.system(size: 22, weight: .black, design: .rounded))
-                        .foregroundStyle(.green)
-                } else if let expiry = snapshot.expiresAt {
-                    let seconds = max(0, Int(expiry.timeIntervalSince(now)))
-                    if seconds > 0 {
-                        let days = seconds / 86_400
-                        let hours = (seconds % 86_400) / 3_600
-                        let minutes = (seconds % 3_600) / 60
-                        let remainingSeconds = seconds % 60
-                        Text(language.text("license.remaining", Int64(days), Int64(hours), Int64(minutes), Int64(remainingSeconds)))
-                            .font(.system(size: 20, weight: .black, design: .monospaced))
-                            .foregroundStyle(accent)
-                    } else {
-                        Text(language.text("license.expired"))
-                            .font(.system(size: 20, weight: .black, design: .rounded))
-                            .foregroundStyle(.red)
-                    }
-                }
-
-                if !snapshot.features.isEmpty {
-                    Text(snapshot.features.joined(separator: " · "))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Text(language.text("license.last_sync", snapshot.syncedAt.formatted(date: .omitted, time: .shortened)))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(language.text("license.not_available"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            licenseValue
         }
         .padding(14)
         .background(accent.opacity(0.07), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -48725,8 +48728,9 @@ struct LicenseStatusCard: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let deviceID = await MainActor.run { UIDevice.current.identifierForVendor?.uuidString ?? "unknown" }
         req.setValue(deviceID, forHTTPHeaderField: "X-Device-ID")
-        req.setValue(UIDevice.current.model, forHTTPHeaderField: "X-Device-Model")
-        req.setValue(UIDevice.current.systemVersion, forHTTPHeaderField: "X-iOS-Version")
+        let deviceMeta = await MainActor.run { (UIDevice.current.model, UIDevice.current.systemVersion) }
+        req.setValue(deviceMeta.0, forHTTPHeaderField: "X-Device-Model")
+        req.setValue(deviceMeta.1, forHTTPHeaderField: "X-iOS-Version")
         let normalizedKey = key.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["key": normalizedKey])
         let (data, response) = try await URLSession.shared.data(for: req)
@@ -48760,6 +48764,8 @@ struct LicenseStatusCard: View {
     replace_in('Sources/views/SettingsView.swift', 'Text(appState.isSupported ? "✅ Supported" : "❌ Unsupported")', 'Text(appState.isSupported ? language.text("status.supported") : language.text("status.unsupported"))')
     replace_in('Sources/App.swift', '                    KernelSession.clear()\n                    KernelFeatureSession.shared.set(features: [])', '                    KernelSession.clear()\n                    LicenseSnapshotStore.shared.clear()\n                    KernelFeatureSession.shared.set(features: [])')
     replace_in('Sources/App.swift', '                KernelSession.clear()\n                withAnimation', '                KernelSession.clear()\n                LicenseSnapshotStore.shared.clear()\n                withAnimation')
+    replace_in('Info.plist', '<key>CFBundleIdentifier</key>\n\t<string>com.apple.mobile.MobileHouseArrest</string>', '<key>CFBundleIdentifier</key>\n\t<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>')
+    replace_in('Sources/helpers/DisplayIdentityAttribution.swift', '                // Fallback for edge cases\n                return UIApplication.shared.windows\n', '                // Fallback for edge cases: use the host view window instead of deprecated UIApplication.windows.\n                return hostView.window.map { [$0] } ?? []\n')
     replace_in('Sources/ContentView.swift', 'systemImage: "syringe.fill"', 'systemImage: "scope"')
     replace_in('Sources/ContentView.swift', 'systemImage: "paintbrush.fill"', 'systemImage: "square.stack.3d.up.fill"')
     replace_in('Sources/ContentView.swift', '        .tint(AppTheme.accent)\n', '        .tint(AppTheme.accent)\n        .toolbarBackground(Color(red: 0.04, green: 0.06, blue: 0.12), for: .tabBar)\n        .toolbarBackground(.visible, for: .tabBar)\n')
