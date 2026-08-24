@@ -48871,6 +48871,23 @@ struct LicenseStatusCard: View {
 }'''
     replace_in('Sources/views/KeyActivationView.swift', 'import SwiftUI\n', 'import SwiftUI\nimport Foundation\n')
     replace_in('Sources/views/KeyActivationView.swift', validator_old, validator_new)
+
+    # Some bundled source revisions use ValidateResult instead of validator_old.
+    # Replace the whole generated KeyValidator block so the license snapshot is
+    # always saved after a successful activation and the UI can count down.
+    key_view_path = os.path.join(sources, 'views', 'KeyActivationView.swift')
+    if os.path.exists(key_view_path):
+        with open(key_view_path, 'r', encoding='utf-8') as f:
+            key_code = f.read()
+        marker = '\n\n// MARK: - Check step'
+        start = key_code.find('enum KeyValidator {')
+        end = key_code.find(marker, start)
+        if start >= 0 and end > start:
+            key_code = key_code[:start] + validator_new + key_code[end:]
+            with open(key_view_path, 'w', encoding='utf-8') as f:
+                f.write(key_code)
+            print('[setup] Replaced generated KeyValidator with snapshot-aware version')
+
     replace_in('Sources/views/KeyActivationView.swift', 'KernelKeychain.delete(); triggerShake()', 'KernelKeychain.delete(); LicenseSnapshotStore.shared.clear(); triggerShake()')
 
     replace_in('Sources/views/SettingsView.swift', '                // Device\n', '                // License\n                Section { LicenseStatusCard() }\n\n                // Device\n')
