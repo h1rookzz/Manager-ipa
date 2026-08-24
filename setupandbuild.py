@@ -49708,6 +49708,45 @@ private extension View {
             f.write(code)
         print('[setup] Clipboard auto-fill extension added')
 
+def _patch_more_features():
+    """KERNEL: добавляем Magic Bullet, Chams, Holo Full, Holo Pink в allInstances."""
+    import os
+    view = os.path.join(ROOT, 'Sources', 'views', 'KernelInjectView.swift')
+    if not os.path.exists(view):
+        print('[setup] KernelInjectView not found')
+        return
+    with open(view, 'r', encoding='utf-8') as f:
+        code = f.read()
+
+    old = (
+        '    // AIM' + chr(10) +
+        '    KernelPatchInstance(id: "body",         label: "AIM Body",          icon: "figure.stand",        fileName: "KERNEL_BODY.krnl",             category: .aim),' + chr(10) +
+        '    KernelPatchInstance(id: "neck",         label: "AIM Neck",          icon: "person.bust",          fileName: "KERNEL_NECK.krnl",             category: .aim),' + chr(10) +
+        '    // HOLOGRAM' + chr(10) +
+        '    KernelPatchInstance(id: "holo_blue",    label: "Hologram Blue",     icon: "sparkles.tv.fill",    fileName: "KERNEL_Hologram_blue.krnl",    category: .hologram),' + chr(10) +
+        '    KernelPatchInstance(id: "fps144",       label: "144 FPS",           icon: "gauge.with.needle",   fileName: "KERNEL144fps.krnl",            category: .hologram),'
+    )
+    new = (
+        '    // AIM' + chr(10) +
+        '    KernelPatchInstance(id: "body",         label: "AIM Body",          icon: "figure.stand",        fileName: "KERNEL_BODY.krnl",             category: .aim),' + chr(10) +
+        '    KernelPatchInstance(id: "neck",         label: "AIM Neck",          icon: "person.bust",          fileName: "KERNEL_NECK.krnl",             category: .aim),' + chr(10) +
+        '    KernelPatchInstance(id: "magic_bullet", label: "Magic Bullet",      icon: "scope",                fileName: "MAGIC_BULET_KERNEL.krnl",      category: .aim),' + chr(10) +
+        '    // HOLOGRAM' + chr(10) +
+        '    KernelPatchInstance(id: "holo_blue",    label: "Hologram Blue",     icon: "sparkles.tv.fill",    fileName: "KERNEL_Hologram_blue.krnl",    category: .hologram),' + chr(10) +
+        '    KernelPatchInstance(id: "holo_full",    label: "Hologram Full",     icon: "sparkles",             fileName: "KERNEL_Hologram_Full.krnl",    category: .hologram),' + chr(10) +
+        '    KernelPatchInstance(id: "holo_pink",    label: "Hologram Pink",     icon: "heart.circle.fill",   fileName: "KERNEL_HOLO_PINK.krnl",        category: .hologram),' + chr(10) +
+        '    KernelPatchInstance(id: "chams",        label: "Chams",             icon: "eye.fill",             fileName: "Chams_KERNEL.krnl",            category: .hologram),' + chr(10) +
+        '    KernelPatchInstance(id: "fps144",       label: "144 FPS",           icon: "gauge.with.needle",   fileName: "KERNEL144fps.krnl",            category: .hologram),'
+    )
+
+    if old in code and 'magic_bullet' not in code:
+        code = code.replace(old, new)
+        with open(view, 'w', encoding='utf-8') as f:
+            f.write(code)
+        print('[setup] Added Magic Bullet + Chams + Holo Full + Holo Pink')
+    else:
+        print('[setup] More features already added or pattern missing')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49721,6 +49760,7 @@ def write_files():
     _patch_live_status()
     _patch_gaming()
     _patch_clipboard_watcher()
+    _patch_more_features()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
