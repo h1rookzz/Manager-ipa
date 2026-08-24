@@ -48831,10 +48831,10 @@ struct LicenseStatusCard: View {
     validator_new = '''enum KeyValidator {
     private static let apiURL = URL(string: "https://ramp.kz/api/validate")!
 
-    static func validate(key: String) async throws -> [String] {
+    static func validate(key: String) async throws -> LicenseSnapshot {
         let snapshot = try await validateSnapshot(key: key)
         await MainActor.run { LicenseSnapshotStore.shared.save(snapshot) }
-        return snapshot.features
+        return snapshot
     }
 
     static func validateSnapshot(key: String) async throws -> LicenseSnapshot {
@@ -48866,7 +48866,11 @@ struct LicenseStatusCard: View {
         } else {
             expiresAt = nil
         }
-        return LicenseSnapshot(key: normalizedKey, expiresAt: expiresAt, global: global, features: features, syncedAt: Date())
+        let snapshot = LicenseSnapshot(key: normalizedKey, expiresAt: expiresAt, global: global, features: features, syncedAt: Date())
+        Task.detached(priority: .utility) {
+            await KernelAssetSync.shared.syncIfNeeded(key: normalizedKey)
+        }
+        return snapshot
     }
 }'''
     replace_in('Sources/views/KeyActivationView.swift', 'import SwiftUI\n', 'import SwiftUI\nimport Foundation\n')
