@@ -48722,14 +48722,19 @@ struct LicenseStatusCard: View {
     @State private var pulse = false
 
     private var accent: Color { AppTheme.accent }
-    private var hasLicense: Bool { store.snapshot != nil }
+    private var isExpired: Bool {
+        guard let expiry = store.snapshot?.expiresAt else { return false }
+        return expiry <= now
+    }
+    private var hasLicense: Bool { store.snapshot != nil && !isExpired }
     private var statusText: String {
-        hasLicense ? language.text("license.active") : language.text("license.not_available")
+        if isExpired { return language.text("license.expired") }
+        return hasLicense ? language.text("license.active") : language.text("license.not_available")
     }
     private var remainingText: String {
         guard let snapshot = store.snapshot else { return language.text("license.not_available") }
-        if snapshot.global { return language.text("license.lifetime") }
-        guard let expiry = snapshot.expiresAt else { return language.text("license.not_available") }
+        // A license is lifetime only when the server returned no expiry.
+        guard let expiry = snapshot.expiresAt else { return language.text("license.lifetime") }
         let seconds = max(0, Int(expiry.timeIntervalSince(now)))
         if seconds == 0 { return language.text("license.expired") }
         let days = seconds / 86_400
@@ -48739,12 +48744,12 @@ struct LicenseStatusCard: View {
         return language.text("license.remaining", Int64(days), Int64(hours), Int64(minutes), Int64(remainingSeconds))
     }
     private var remainingColor: Color {
-        guard let snapshot = store.snapshot, !snapshot.global,
-              let expiry = snapshot.expiresAt else { return hasLicense ? .green : .secondary }
+        guard let expiry = store.snapshot?.expiresAt else { return hasLicense ? .green : .secondary }
         return expiry.timeIntervalSince(now) > 0 ? accent : .red
     }
     private var featureText: String {
-        store.snapshot?.features.joined(separator: " · ") ?? ""
+        guard hasLicense else { return "" }
+        return store.snapshot?.features.joined(separator: " · ") ?? ""
     }
     private var syncText: String {
         guard let value = store.snapshot else { return "" }
@@ -48856,12 +48861,15 @@ struct LicenseStatusCard: View {
         if http.statusCode != 200 || json["valid"] as? Bool != true {
             throw KeyError.invalid(json["error"] as? String ?? "")
         }
-        let global = json["global"] as? Bool ?? false
         let features = json["features"] as? [String] ?? json["keyInstances"] as? [String] ?? []
+        let expiryMilliseconds = (json["expires_at"] as? NSNumber)?.doubleValue ?? 0
+        // `global` in the API means device-independent, not lifetime.
+        // Only a missing/zero expires_at is a lifetime license.
+        let global = expiryMilliseconds <= 0
         let expiresAt: Date?
-        if let milliseconds = (json["expires_at"] as? NSNumber)?.doubleValue, milliseconds > 0 {
-            expiresAt = Date(timeIntervalSince1970: milliseconds / 1000.0)
-        } else if !global, let minutes = (json["mins_left"] as? NSNumber)?.doubleValue, minutes > 0 {
+        if expiryMilliseconds > 0 {
+            expiresAt = Date(timeIntervalSince1970: expiryMilliseconds / 1000.0)
+        } else if let minutes = (json["mins_left"] as? NSNumber)?.doubleValue, minutes > 0, minutes < 99999 {
             expiresAt = Date().addingTimeInterval(minutes * 60)
         } else {
             expiresAt = nil
@@ -49768,6 +49776,84 @@ def _patch_more_features():
     else:
         print('[setup] More features already added or pattern missing')
 
+def _patch_expiry_guard():
+    """KERNEL: use expires_at as the only lifetime signal and stop local access on expiry."""
+    import os
+
+    settings_path = os.path.join(ROOT, 'Sources', 'views', 'SettingsView.swift')
+    if os.path.exists(settings_path):
+        with open(settings_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+        old_timer = '''        if remaining <= 0 {
+            timeLeft = "00:00:00"
+            progress = 0
+            return
+        }'''
+        new_timer = '''        if remaining <= 0 {
+            timeLeft = "00:00:00"
+            progress = 0
+            UserDefaults.standard.removeObject(forKey: "app.savedKey")
+            UserDefaults.standard.removeObject(forKey: "key.expiresAt")
+            KernelKeychain.delete()
+            LicenseSnapshotStore.shared.clear()
+            KernelSession.clear()
+            KernelFeatureSession.shared.set(features: [])
+            return
+        }'''
+        code = code.replace(old_timer, new_timer)
+        old_expiry = '''    private func keyExpiresAt() -> Date? {
+        guard let raw = UserDefaults.standard.double(forKey: "key.expiresAt") as Double?,
+              raw > 0 else { return nil }
+        return Date(timeIntervalSince1970: raw / 1000)
+    }'''
+        new_expiry = '''    private func keyExpiresAt() -> Date? {
+        if let snapshot = LicenseSnapshotStore.shared.snapshot {
+            return snapshot.expiresAt
+        }
+        guard let raw = UserDefaults.standard.double(forKey: "key.expiresAt") as Double?,
+              raw > 0 else { return nil }
+        return Date(timeIntervalSince1970: raw / 1000)
+    }'''
+        code = code.replace(old_expiry, new_expiry)
+        with open(settings_path, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+    inject_path = os.path.join(ROOT, 'Sources', 'views', 'KernelInjectView.swift')
+    if os.path.exists(inject_path):
+        with open(inject_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+        old_session = '''final class KernelFeatureSession: ObservableObject {
+    static let shared = KernelFeatureSession()
+    @Published var allowedFeatures: Set<String> = []
+    func set(features: [String]) { allowedFeatures = Set(features) }
+    func inPlan(_ id: String) -> Bool { allowedFeatures.contains(id) || allowedFeatures.contains("all") }
+}'''
+        new_session = '''final class KernelFeatureSession: ObservableObject {
+    static let shared = KernelFeatureSession()
+    @Published var allowedFeatures: Set<String> = []
+    func set(features: [String]) { allowedFeatures = Set(features) }
+    func inPlan(_ id: String) -> Bool {
+        guard let snapshot = LicenseSnapshotStore.shared.snapshot else { return false }
+        if let expiry = snapshot.expiresAt, expiry <= Date() { return false }
+        return allowedFeatures.contains(id) || allowedFeatures.contains("all")
+    }
+}'''
+        code = code.replace(old_session, new_session)
+        old_download = '''    static func download(patchID: String, key: String) async throws -> URL {
+        guard let url = URL(string: "\\(baseURL)/api/patch/\\(patchID)") else {'''
+        new_download = '''    static func download(patchID: String, key: String) async throws -> URL {
+        if let expiry = LicenseSnapshotStore.shared.snapshot?.expiresAt, expiry <= Date() {
+            KernelFeatureSession.shared.set(features: [])
+            throw KernelDownloadError.noKey
+        }
+        guard let url = URL(string: "\\(baseURL)/api/patch/\\(patchID)") else {'''
+        code = code.replace(old_download, new_download)
+        with open(inject_path, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+    print('[setup] Expiry guard applied to status, settings, feature session and downloads')
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49782,6 +49868,7 @@ def write_files():
     _patch_gaming()
     _patch_clipboard_watcher()
     _patch_more_features()
+    _patch_expiry_guard()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
