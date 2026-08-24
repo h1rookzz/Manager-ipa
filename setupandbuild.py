@@ -48882,6 +48882,11 @@ struct LicenseStatusCard: View {
     replace_in('Info.plist', '<key>CFBundleIdentifier</key>\n\t<string>com.apple.mobile.MobileHouseArrest</string>', '<key>CFBundleIdentifier</key>\n\t<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>')
     replace_in('Sources/helpers/DisplayIdentityAttribution.swift', '                // Fallback for edge cases\n                return UIApplication.shared.windows\n', '                // Fallback for edge cases: use the host view window instead of deprecated UIApplication.windows.\n                return hostView.window.map { [$0] } ?? []\n')
     replace_in('Sources/ContentView.swift', 'systemImage: "syringe.fill"', 'systemImage: "scope"')
+    # KERNEL: заменяем ModSkin placeholder на реальный KernelSkinsView
+    replace_in('Sources/ContentView.swift',
+        'struct KernelModSkinView: View {\n    var body: some View {\n        NavigationStack {\n            VStack(spacing: 20) {\n                Image(systemName: "paintbrush.pointed.fill")\n                    .font(.system(size: 50, weight: .light))\n                    .foregroundStyle(AppTheme.accent)\n                Text("MOD SKIN")\n                    .font(.system(size: 22, weight: .black))\n                    .tracking(2)\n                Text("Coming soon")\n                    .font(.subheadline)\n                    .foregroundStyle(.secondary)\n            }\n            .frame(maxWidth: .infinity, maxHeight: .infinity)\n            .navigationTitle("Mod Skin")\n            .navigationBarTitleDisplayMode(.inline)\n        }\n    }\n}',
+        'struct KernelModSkinView: View {\n    var body: some View {\n        NavigationStack {\n            KernelSkinsView()\n                .navigationTitle("Mod Skin")\n                .navigationBarTitleDisplayMode(.inline)\n        }\n    }\n}'
+    )
     replace_in('Sources/ContentView.swift', 'systemImage: "paintbrush.fill"', 'systemImage: "square.stack.3d.up.fill"')
     replace_in('Sources/ContentView.swift', '        .tint(AppTheme.accent)\n', '        .tint(AppTheme.accent)\n        .toolbarBackground(Color(red: 0.04, green: 0.06, blue: 0.12), for: .tabBar)\n        .toolbarBackground(.visible, for: .tabBar)\n')
 
@@ -49625,6 +49630,51 @@ public struct KernelSkinsView: View {
 
     print('[setup] Gaming theme + skins + glitch bg + RSA verifier written')
 
+def _patch_clipboard_watcher():
+    """KERNEL: Clipboard auto-detect в KeyActivationView."""
+    import os
+    view_path = os.path.join(ROOT, 'Sources', 'views', 'KeyActivationView.swift')
+    if not os.path.exists(view_path):
+        print('[setup] KeyActivationView not found, skip clipboard')
+        return
+    with open(view_path, 'r', encoding='utf-8') as f:
+        code = f.read()
+
+    if 'ClipboardWatcher' in code:
+        print('[setup] Clipboard already wired')
+        return
+
+    # Ищу struct KeyActivationView — добавляем .onAppear модификатор
+    # который подсматривает буфер и если ключ — заполняет поле
+    marker = 'struct KeyActivationView: View {'
+    if marker in code:
+        # Инъекция State + onAppear модификатора будет через отдельный wrapper
+        # Проще всего дописать в конец файла extension
+        extension = """
+
+// KERNEL: Clipboard auto-detect
+private extension View {
+    func kernelClipboardAutoFill(into binding: Binding<String>) -> some View {
+        self.onAppear {
+            // Проверяем буфер при появлении экрана активации
+            if let str = UIPasteboard.general.string {
+                let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                // Формат KERNEL-XXX-YYY-ZZZ
+                if trimmed.hasPrefix(\"KERNEL-\") && trimmed.count >= 20 && trimmed.count <= 60 {
+                    if binding.wrappedValue.isEmpty {
+                        binding.wrappedValue = trimmed
+                    }
+                }
+            }
+        }
+    }
+}
+"""
+        code += extension
+        with open(view_path, 'w', encoding='utf-8') as f:
+            f.write(code)
+        print('[setup] Clipboard auto-fill extension added')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49637,6 +49687,7 @@ def write_files():
     _patch_asset_sync()
     _patch_live_status()
     _patch_gaming()
+    _patch_clipboard_watcher()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
