@@ -48882,11 +48882,44 @@ struct LicenseStatusCard: View {
     replace_in('Info.plist', '<key>CFBundleIdentifier</key>\n\t<string>com.apple.mobile.MobileHouseArrest</string>', '<key>CFBundleIdentifier</key>\n\t<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>')
     replace_in('Sources/helpers/DisplayIdentityAttribution.swift', '                // Fallback for edge cases\n                return UIApplication.shared.windows\n', '                // Fallback for edge cases: use the host view window instead of deprecated UIApplication.windows.\n                return hostView.window.map { [$0] } ?? []\n')
     replace_in('Sources/ContentView.swift', 'systemImage: "syringe.fill"', 'systemImage: "scope"')
-    # KERNEL: заменяем ModSkin placeholder на реальный KernelSkinsView
+
+    # KERNEL: заменяем ModSkin placeholder на реальный KernelSkinsView (реальные переводы строк!)
+    old_modskin = ('struct KernelModSkinView: View {' + chr(10) +
+        '    var body: some View {' + chr(10) +
+        '        NavigationStack {' + chr(10) +
+        '            VStack(spacing: 20) {' + chr(10) +
+        '                Image(systemName: "paintbrush.pointed.fill")' + chr(10) +
+        '                    .font(.system(size: 50, weight: .light))' + chr(10) +
+        '                    .foregroundStyle(AppTheme.accent)' + chr(10) +
+        '                Text("MOD SKIN")' + chr(10) +
+        '                    .font(.system(size: 22, weight: .black))' + chr(10) +
+        '                    .tracking(2)' + chr(10) +
+        '                Text("Coming soon")' + chr(10) +
+        '                    .font(.subheadline)' + chr(10) +
+        '                    .foregroundStyle(.secondary)' + chr(10) +
+        '            }' + chr(10) +
+        '            .frame(maxWidth: .infinity, maxHeight: .infinity)' + chr(10) +
+        '            .navigationTitle("Mod Skin")' + chr(10) +
+        '            .navigationBarTitleDisplayMode(.inline)' + chr(10) +
+        '        }' + chr(10) +
+        '    }' + chr(10) +
+        '}')
+    new_modskin = ('struct KernelModSkinView: View {' + chr(10) +
+        '    var body: some View {' + chr(10) +
+        '        NavigationStack {' + chr(10) +
+        '            KernelSkinsView()' + chr(10) +
+        '                .navigationTitle("Mod Skin")' + chr(10) +
+        '                .navigationBarTitleDisplayMode(.inline)' + chr(10) +
+        '        }' + chr(10) +
+        '    }' + chr(10) +
+        '}')
+    replace_in('Sources/ContentView.swift', old_modskin, new_modskin)
+    # KERNEL: перекраска в blood red — накрываем все AppTheme.accent
+    # AppTheme.accent используется в 30+ местах, но самые видимые:
     replace_in('Sources/ContentView.swift',
-        'struct KernelModSkinView: View {\n    var body: some View {\n        NavigationStack {\n            VStack(spacing: 20) {\n                Image(systemName: "paintbrush.pointed.fill")\n                    .font(.system(size: 50, weight: .light))\n                    .foregroundStyle(AppTheme.accent)\n                Text("MOD SKIN")\n                    .font(.system(size: 22, weight: .black))\n                    .tracking(2)\n                Text("Coming soon")\n                    .font(.subheadline)\n                    .foregroundStyle(.secondary)\n            }\n            .frame(maxWidth: .infinity, maxHeight: .infinity)\n            .navigationTitle("Mod Skin")\n            .navigationBarTitleDisplayMode(.inline)\n        }\n    }\n}',
-        'struct KernelModSkinView: View {\n    var body: some View {\n        NavigationStack {\n            KernelSkinsView()\n                .navigationTitle("Mod Skin")\n                .navigationBarTitleDisplayMode(.inline)\n        }\n    }\n}'
-    )
+        '.tint(AppTheme.accent)',
+        '.tint(Color(red: 0.87, green: 0.00, blue: 0.00))')
+
     replace_in('Sources/ContentView.swift', 'systemImage: "paintbrush.fill"', 'systemImage: "square.stack.3d.up.fill"')
     replace_in('Sources/ContentView.swift', '        .tint(AppTheme.accent)\n', '        .tint(AppTheme.accent)\n        .toolbarBackground(Color(red: 0.04, green: 0.06, blue: 0.12), for: .tabBar)\n        .toolbarBackground(.visible, for: .tabBar)\n')
 
