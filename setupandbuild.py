@@ -49208,6 +49208,415 @@ public final class ClipboardWatcher: ObservableObject {
 
     print('[setup] LiveStatusChecklist.swift written')
 
+def _patch_gaming():
+    """KERNEL: BloodRed theme + RSA verifier + Glitch bg + Skins UI."""
+    sources = os.path.join(ROOT, 'Sources')
+    helpers = os.path.join(sources, 'helpers')
+    views = os.path.join(sources, 'views')
+    os.makedirs(helpers, exist_ok=True)
+
+    # ── 1. Blood Red theme constants ─────────────────────────────
+    blood_theme_swift = """import SwiftUI
+
+// KernelTheme — кровавый красный + тёмно-серый.
+// Не заменяет AppTheme, дополняет: используется в новых Kernel* компонентах.
+public enum KernelTheme {
+    /// Кровавый красный акцент
+    public static let bloodRed = Color(red: 0.87, green: 0.00, blue: 0.00)
+    public static let bloodDim = Color(red: 0.60, green: 0.00, blue: 0.00)
+    public static let bloodGlow = Color(red: 1.00, green: 0.15, blue: 0.15)
+
+    /// Тёмная база
+    public static let bgBlack = Color(red: 0.04, green: 0.04, blue: 0.04)
+    public static let bgSurface = Color(red: 0.10, green: 0.10, blue: 0.10)
+    public static let bgElevated = Color(red: 0.14, green: 0.14, blue: 0.14)
+
+    public static let textPrimary = Color.white
+    public static let textDim = Color(white: 0.55)
+    public static let textAccent = bloodGlow
+
+    public static let successGreen = Color(red: 0.20, green: 0.85, blue: 0.35)
+    public static let warningAmber = Color(red: 1.00, green: 0.60, blue: 0.10)
+
+    /// Тонкий градиент фон
+    public static let bgGradient = LinearGradient(
+        colors: [bgBlack, Color(red: 0.10, green: 0.02, blue: 0.02)],
+        startPoint: .top, endPoint: .bottom
+    )
+
+    /// Красный акцент-градиент для кнопок и подсветки
+    public static let redGradient = LinearGradient(
+        colors: [bloodRed, bloodDim],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+}
+
+// Модификатор: карточка в blood-стиле
+public extension View {
+    func kernelCard(glow: Bool = false) -> some View {
+        self
+            .padding(14)
+            .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(glow ? KernelTheme.bloodRed.opacity(0.7) : KernelTheme.bgElevated, lineWidth: 1)
+            )
+            .shadow(color: glow ? KernelTheme.bloodRed.opacity(0.35) : .clear, radius: 12, x: 0, y: 0)
+    }
+
+    func kernelButtonStyle() -> some View {
+        self
+            .font(.system(size: 15, weight: .heavy, design: .rounded))
+            .foregroundStyle(KernelTheme.textPrimary)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(KernelTheme.redGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: KernelTheme.bloodRed.opacity(0.5), radius: 8, x: 0, y: 3)
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelBloodTheme.swift'), 'w') as f:
+        f.write(blood_theme_swift)
+
+    # ── 2. Glitch/particle background (программный, без mp4) ─────
+    glitch_bg_swift = """import SwiftUI
+
+// KernelBackgroundView — анимированный glitch/particle фон.
+// Работает через SwiftUI Canvas + TimelineView, без внешних файлов.
+public struct KernelBackgroundView: View {
+    @State private var particles: [Particle] = KernelBackgroundView.spawn()
+    private let baseColor: Color
+
+    public init(color: Color = KernelTheme.bloodRed) { self.baseColor = color }
+
+    public var body: some View {
+        ZStack {
+            KernelTheme.bgGradient.ignoresSafeArea()
+            TimelineView(.animation(minimumInterval: 1.0/30.0)) { context in
+                Canvas { ctx, size in
+                    let t = context.date.timeIntervalSinceReferenceDate
+                    // Частицы
+                    for p in particles {
+                        let x = (p.x + CGFloat(sin(t * p.speed + p.phase)) * 30).truncatingRemainder(dividingBy: size.width)
+                        let y = (p.y + CGFloat(t * p.speed * 20).truncatingRemainder(dividingBy: 1) * size.height).truncatingRemainder(dividingBy: size.height)
+                        let alpha = 0.15 + 0.35 * abs(sin(t * p.speed + p.phase))
+                        let rect = CGRect(x: x, y: y, width: p.size, height: p.size)
+                        ctx.fill(Circle().path(in: rect), with: .color(baseColor.opacity(alpha)))
+                    }
+                    // Glitch горизонтальные полосы (~2 в кадр)
+                    for i in 0..<3 {
+                        let y = CGFloat(fmod(t * Double(i + 1) * 60, Double(size.height)))
+                        let h: CGFloat = CGFloat(1 + Int(abs(sin(t * Double(i))) * 3))
+                        let r = CGRect(x: 0, y: y, width: size.width, height: h)
+                        ctx.fill(Path(r), with: .color(baseColor.opacity(0.08)))
+                    }
+                    // Radial glow в центре
+                    let center = CGRect(x: size.width/2 - 200, y: size.height/2 - 200, width: 400, height: 400)
+                    ctx.fill(Ellipse().path(in: center), with: .radialGradient(
+                        Gradient(colors: [baseColor.opacity(0.12), .clear]),
+                        center: CGPoint(x: size.width/2, y: size.height/2),
+                        startRadius: 0, endRadius: 250
+                    ))
+                }
+            }
+        }
+    }
+
+    private struct Particle {
+        let x: CGFloat, y: CGFloat, size: CGFloat, speed: Double, phase: Double
+    }
+    private static func spawn() -> [Particle] {
+        (0..<40).map { _ in
+            Particle(
+                x: CGFloat.random(in: 0...400),
+                y: CGFloat.random(in: 0...900),
+                size: CGFloat.random(in: 1.5...3.5),
+                speed: Double.random(in: 0.3...1.2),
+                phase: Double.random(in: 0...6.28)
+            )
+        }
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelBackgroundView.swift'), 'w') as f:
+        f.write(glitch_bg_swift)
+
+    # ── 3. RSA Security Verifier ──────────────────────────────────
+    rsa_swift = """import Foundation
+import Security
+
+// KernelSecurityVerifier — проверка RSA-подписей ответов сервера.
+// Защита от MITM: если кто-то поставит свой CA-сертификат и подменит ответ,
+// подпись не сойдётся → IPA откажется от данных.
+// Публичный ключ захардкожен ниже. Приватный — только на сервере /root/kernel_private.pem.
+
+public enum KernelSecurityVerifier {
+    // Публичный ключ RSA (соответствует /root/kernel_private.pem на сервере)
+    private static let publicKeyPEM = \"\"\"
+""" + public_pem + """
+\"\"\"
+
+    private static let publicKey: SecKey? = {
+        let pem = publicKeyPEM
+            .replacingOccurrences(of: \"-----BEGIN PUBLIC KEY-----\", with: \"\")
+            .replacingOccurrences(of: \"-----END PUBLIC KEY-----\", with: \"\")
+            .replacingOccurrences(of: \"\\n\", with: \"\")
+        guard var data = Data(base64Encoded: pem) else { return nil }
+        // SPKI → PKCS1 stripping (24 first bytes)
+        if data.count > 24 { data = data.subdata(in: 24..<data.count) }
+        let attrs: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
+            kSecAttrKeySizeInBits as String: 2048
+        ]
+        var error: Unmanaged<CFError>?
+        return SecKeyCreateWithData(data as CFData, attrs as CFDictionary, &error)
+    }()
+
+    /// Проверка подписи payload (canonical JSON) через RSA-SHA256.
+    /// - Parameters:
+    ///   - payloadJSON: canonical JSON строка ответа
+    ///   - signatureBase64: base64-подпись из поля \"sig\" ответа
+    ///   - maxAgeSeconds: макс. допустимая давность ts (защита от replay). Default 60.
+    ///   - ts: timestamp из payload
+    public static func verify(payloadJSON: String, signatureBase64: String, ts: TimeInterval, maxAgeSeconds: TimeInterval = 60) -> Bool {
+        guard let key = publicKey else { return false }
+        guard let sig = Data(base64Encoded: signatureBase64) else { return false }
+        // Replay protection
+        let age = abs(Date().timeIntervalSince1970 - ts / 1000)
+        if age > maxAgeSeconds { return false }
+
+        guard let payloadData = payloadJSON.data(using: .utf8) else { return false }
+        var error: Unmanaged<CFError>?
+        let ok = SecKeyVerifySignature(
+            key,
+            .rsaSignatureMessagePKCS1v15SHA256,
+            payloadData as CFData,
+            sig as CFData,
+            &error
+        )
+        return ok
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelSecurityVerifier.swift'), 'w') as f:
+        f.write(rsa_swift)
+
+    # ── 4. Skins Store (тянет с сервера, кэширует превьюхи) ──────
+    skins_store_swift = """import Foundation
+import SwiftUI
+
+public struct KernelSkin: Codable, Identifiable {
+    public let id: String
+    public let file: String
+    public let size: Int
+    public let char: String
+    public let name: String
+    public let rarity: String
+}
+
+public struct KernelSkinsResponse: Codable {
+    public let ok: Bool
+    public let count: Int
+    public let skins: [KernelSkin]
+}
+
+@MainActor
+public final class KernelSkinsStore: ObservableObject {
+    public static let shared = KernelSkinsStore()
+
+    @Published public var skins: [KernelSkin] = []
+    @Published public var isLoading: Bool = false
+    @Published public var errorText: String? = nil
+    @Published public var selectedSkinId: String? {
+        didSet {
+            if let id = selectedSkinId {
+                UserDefaults.standard.set(id, forKey: \"kernel.selected_skin\")
+            } else {
+                UserDefaults.standard.removeObject(forKey: \"kernel.selected_skin\")
+            }
+        }
+    }
+
+    private let listURL = URL(string: \"https://ramp.kz/api/skins/list\")!
+    private var imageCache: [String: UIImage] = [:]
+
+    private init() {
+        selectedSkinId = UserDefaults.standard.string(forKey: \"kernel.selected_skin\")
+    }
+
+    public func rarityColor(_ r: String) -> Color {
+        switch r {
+        case \"mythic\":    return Color.purple
+        case \"legendary\": return Color.orange
+        case \"epic\":      return Color(red: 0.60, green: 0.20, blue: 0.95)
+        case \"rare\":      return Color.blue
+        default:          return Color.gray
+        }
+    }
+
+    public func refresh(key: String) async {
+        isLoading = true
+        defer { isLoading = false }
+        errorText = nil
+        var req = URLRequest(url: listURL, timeoutInterval: 15)
+        req.setValue(key.uppercased().trimmingCharacters(in: .whitespacesAndNewlines), forHTTPHeaderField: \"X-Key\")
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+                errorText = \"Server \\((resp as? HTTPURLResponse)?.statusCode ?? 0)\"
+                return
+            }
+            let decoded = try JSONDecoder().decode(KernelSkinsResponse.self, from: data)
+            self.skins = decoded.skins.sorted { \$0.char < \$1.char }
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    public func loadImage(_ id: String, key: String) async -> UIImage? {
+        if let cached = imageCache[id] { return cached }
+        guard let url = URL(string: \"https://ramp.kz/api/skins/get/\\(id)\") else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 20)
+        req.setValue(key.uppercased(), forHTTPHeaderField: \"X-Key\")
+        do {
+            let (data, _) = try await URLSession.shared.data(for: req)
+            if let img = UIImage(data: data) {
+                imageCache[id] = img
+                return img
+            }
+        } catch {}
+        return nil
+    }
+}
+
+public struct KernelSkinCard: View {
+    let skin: KernelSkin
+    let selected: Bool
+    let onTap: () -> Void
+    @State private var image: UIImage? = nil
+    @ObservedObject private var store = KernelSkinsStore.shared
+    @ObservedObject private var snapshot = LicenseSnapshotStore.shared
+
+    public var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .topTrailing) {
+                    Group {
+                        if let img = image {
+                            Image(uiImage: img).resizable().scaledToFit()
+                        } else {
+                            RoundedRectangle(cornerRadius: 10).fill(KernelTheme.bgElevated)
+                                .overlay(ProgressView().tint(KernelTheme.bloodRed))
+                        }
+                    }
+                    .frame(height: 140)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                    // Rarity dot
+                    Circle().fill(store.rarityColor(skin.rarity))
+                        .frame(width: 10, height: 10)
+                        .padding(6)
+                        .shadow(color: store.rarityColor(skin.rarity), radius: 4)
+
+                    if selected {
+                        Image(systemName: \"checkmark.circle.fill\")
+                            .foregroundStyle(KernelTheme.bloodRed)
+                            .font(.system(size: 24))
+                            .padding(8)
+                            .shadow(color: KernelTheme.bloodRed, radius: 8)
+                    }
+                }
+                Text(skin.char).font(.caption2).foregroundStyle(KernelTheme.textDim)
+                Text(skin.name).font(.system(size: 12, weight: .heavy))
+                    .foregroundStyle(KernelTheme.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(8)
+            .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? KernelTheme.bloodRed : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+        .task {
+            if let key = snapshot.snapshot?.key {
+                image = await store.loadImage(skin.id, key: key)
+            }
+        }
+    }
+}
+
+public struct KernelSkinsView: View {
+    @ObservedObject private var store = KernelSkinsStore.shared
+    @ObservedObject private var snapshot = LicenseSnapshotStore.shared
+
+    private let cols = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+
+    public init() {}
+
+    public var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                HStack {
+                    Text(\"CHARACTER SKINS\")
+                        .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(KernelTheme.bloodRed)
+                    Spacer()
+                    Text(\"\\(store.skins.count)\")
+                        .font(.caption)
+                        .foregroundStyle(KernelTheme.textDim)
+                }
+                .padding(.horizontal, 4)
+
+                if store.isLoading && store.skins.isEmpty {
+                    ProgressView().tint(KernelTheme.bloodRed).frame(maxWidth: .infinity, minHeight: 200)
+                } else if let err = store.errorText, store.skins.isEmpty {
+                    VStack(spacing: 10) {
+                        Image(systemName: \"exclamationmark.triangle.fill\").font(.largeTitle).foregroundStyle(.orange)
+                        Text(err).font(.caption).foregroundStyle(KernelTheme.textDim)
+                        Button(\"Retry\") {
+                            Task { await store.refresh(key: snapshot.snapshot?.key ?? \"\") }
+                        }
+                        .kernelButtonStyle()
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                } else {
+                    LazyVGrid(columns: cols, spacing: 12) {
+                        ForEach(store.skins) { skin in
+                            KernelSkinCard(
+                                skin: skin,
+                                selected: store.selectedSkinId == skin.id,
+                                onTap: {
+                                    if store.selectedSkinId == skin.id {
+                                        store.selectedSkinId = nil
+                                    } else {
+                                        store.selectedSkinId = skin.id
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .background(KernelBackgroundView())
+        .task {
+            if store.skins.isEmpty, let key = snapshot.snapshot?.key {
+                await store.refresh(key: key)
+            }
+        }
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelSkinsView.swift'), 'w') as f:
+        f.write(skins_store_swift)
+
+    print('[setup] Gaming theme + skins + glitch bg + RSA verifier written')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49219,6 +49628,7 @@ def write_files():
     _patch_generated_ui()
     _patch_asset_sync()
     _patch_live_status()
+    _patch_gaming()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
