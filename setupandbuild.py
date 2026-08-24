@@ -49476,7 +49476,7 @@ public final class KernelSkinsStore: ObservableObject {
                 return
             }
             let decoded = try JSONDecoder().decode(KernelSkinsResponse.self, from: data)
-            self.skins = decoded.skins.sorted { \$0.char < \$1.char }
+            self.skins = decoded.skins.sorted { $0.char < $1.char }
         } catch {
             errorText = error.localizedDescription
         }
