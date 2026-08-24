@@ -49017,6 +49017,197 @@ public actor KernelAssetSync {
     print('[setup] KernelAssetSync.swift written')
 
 
+def _patch_live_status():
+    """KERNEL: LiveStatusChecklist + Clipboard auto-activate."""
+    sources = os.path.join(ROOT, 'Sources')
+
+    checklist_swift = """import Foundation
+import SwiftUI
+
+// LiveStatusChecklist — виджет живой диагностики.
+// Дергает /api/status/checklist и показывает список проверок.
+// Заменяет тухлое "No active license" на понятный чек-лист.
+
+public struct LiveStatusCheck: Codable, Identifiable {
+    public let id: String
+    public let label: String
+    public let ok: Bool
+    public let hint: String?
+}
+
+public struct LiveStatusResponse: Codable {
+    public let ok: Bool
+    public let all_ok: Bool
+    public let checks: [LiveStatusCheck]
+}
+
+@MainActor
+public final class LiveStatusStore: ObservableObject {
+    public static let shared = LiveStatusStore()
+
+    @Published public var checks: [LiveStatusCheck] = []
+    @Published public var allOK: Bool = false
+    @Published public var lastRefresh: Date? = nil
+    @Published public var isLoading: Bool = false
+
+    private static let url = URL(string: \"https://ramp.kz/api/status/checklist\")!
+
+    public func refresh(key: String?, deviceId: String) async {
+        isLoading = true
+        defer { isLoading = false }
+        var req = URLRequest(url: Self.url, timeoutInterval: 12)
+        req.httpMethod = \"POST\"
+        req.setValue(\"application/json\", forHTTPHeaderField: \"Content-Type\")
+        req.setValue(deviceId, forHTTPHeaderField: \"X-Device-ID\")
+        let body: [String: String] = [\"key\": key ?? \"\"]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        do {
+            let (data, _) = try await URLSession.shared.data(for: req)
+            let decoded = try JSONDecoder().decode(LiveStatusResponse.self, from: data)
+            self.checks = decoded.checks
+            self.allOK = decoded.all_ok
+            self.lastRefresh = Date()
+        } catch {
+            self.checks = [LiveStatusCheck(id: \"server\", label: \"SERVER ONLINE\", ok: false, hint: \"Нет соединения\")]
+            self.allOK = false
+        }
+    }
+}
+
+public struct LiveStatusChecklist: View {
+    @ObservedObject private var store = LiveStatusStore.shared
+    @ObservedObject private var snapshot = LicenseSnapshotStore.shared
+    @State private var expanded: Bool = true
+
+    private var accent: Color { AppTheme.accent }
+
+    public init() {}
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: store.allOK ? \"checkmark.shield.fill\" : \"exclamationmark.shield.fill\")
+                    .foregroundStyle(store.allOK ? .green : .orange)
+                Text(\"SYSTEM CHECK\")
+                    .font(.system(size: 13, weight: .heavy))
+                Spacer()
+                if store.isLoading {
+                    ProgressView().scaleEffect(0.7)
+                }
+                Button {
+                    withAnimation { expanded.toggle() }
+                } label: {
+                    Image(systemName: expanded ? \"chevron.up\" : \"chevron.down\")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if expanded {
+                if store.checks.isEmpty {
+                    Text(\"Проверка не выполнялась\")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(store.checks) { check in
+                        HStack(alignment: .top, spacing: 10) {
+                            Circle()
+                                .fill(check.ok ? Color.green : Color.red)
+                                .frame(width: 8, height: 8)
+                                .padding(.top, 6)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(check.label)
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(check.ok ? Color.primary : Color.red)
+                                if let hint = check.hint, !hint.isEmpty {
+                                    Text(hint)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(uiColor: .systemGray6).opacity(0.4), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke((store.allOK ? Color.green : Color.orange).opacity(0.35), lineWidth: 1))
+        .task {
+            let deviceId = await MainActor.run {
+                UIDevice.current.identifierForVendor?.uuidString ?? \"unknown\"
+            }
+            await store.refresh(key: snapshot.snapshot?.key, deviceId: deviceId)
+        }
+        .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+            Task {
+                let deviceId = await MainActor.run {
+                    UIDevice.current.identifierForVendor?.uuidString ?? \"unknown\"
+                }
+                await store.refresh(key: snapshot.snapshot?.key, deviceId: deviceId)
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ClipboardActivator — если в буфере ключ формата KERNEL-XXX-YYY-ZZZ,
+// показывает попап с предложением активировать.
+// ═══════════════════════════════════════════════════════════════════
+@MainActor
+public final class ClipboardWatcher: ObservableObject {
+    public static let shared = ClipboardWatcher()
+
+    @Published public var foundKey: String? = nil
+    private var lastChecked: String? = nil
+
+    public func check() {
+        guard let str = UIPasteboard.general.string else { return }
+        let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        // Формат: KERNEL-XXXXXX-XXXXXX-XXXXXX или похожий
+        let pattern = #\"^KERNEL-[A-F0-9]{4,8}-[A-F0-9]{4,8}-[A-F0-9]{4,8}$\"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              regex.firstMatch(in: trimmed, range: NSRange(0..<trimmed.utf16.count)) != nil else { return }
+        // Не показывать один и тот же 2 раза подряд
+        if trimmed == lastChecked { return }
+        lastChecked = trimmed
+        // Не показывать если уже активирован этот же
+        if let current = LicenseSnapshotStore.shared.snapshot?.key, current == trimmed { return }
+        foundKey = trimmed
+    }
+
+    public func dismiss() {
+        foundKey = nil
+    }
+}
+"""
+
+    dst = os.path.join(sources, 'helpers', 'LiveStatusChecklist.swift')
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    with open(dst, 'w', encoding='utf-8') as f:
+        f.write(checklist_swift)
+
+    # Впаиваем LiveStatusChecklist в SettingsView сразу под LicenseStatusCard
+    view_path = os.path.join(sources, 'views', 'SettingsView.swift')
+    if os.path.exists(view_path):
+        with open(view_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+
+        old = "Section { LicenseStatusCard() }\n\n"
+        new = ("Section { LicenseStatusCard() }\n"
+               "                Section { LiveStatusChecklist() }\n\n")
+        if old in code and 'LiveStatusChecklist' not in code:
+            code = code.replace(old, new)
+            with open(view_path, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] Wired LiveStatusChecklist under LicenseStatusCard')
+        else:
+            print('[setup] LiveStatusChecklist wiring skipped (already patched or pattern missing)')
+
+    print('[setup] LiveStatusChecklist.swift written')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49027,6 +49218,7 @@ def write_files():
     _patch_generated_localization()
     _patch_generated_ui()
     _patch_asset_sync()
+    _patch_live_status()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
