@@ -49353,7 +49353,15 @@ import Security
 public enum KernelSecurityVerifier {
     // Публичный ключ RSA (соответствует /root/kernel_private.pem на сервере)
     private static let publicKeyPEM = \"\"\"
-""" + public_pem + """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx8Hp1da34lsTY99U+ZJj
+j7eWgWjiAFLDV6UeR+O4jgKzOHT3xK2gb0fZ1nd0qL33gPCpyAAlHZNWgbN2Fxz/
+eI2HhlJC6une7H24dVupNZoVvQSS2ONAFlpYkknUChqTW1LRnBg1k9dwrKUiTMSs
+MRdVrdWEwWrkY6jVERT5BGEY5zcIrbm+Sf/ftKGtxnpXZ0udQBwKBRPx4/z+Nxj9
+S084N+GkFMKT8OlPMAiIQIUkNqkqIHFhRlD5VJ0bR2aJGHbolbsGjdDmBICMbxdQ
+JcAryKGJibmzLc4aNFTP4+2mtK3xDiHoNSq30MmmO6cOKXmAfUO1pPxEDo/fthaa
+dQIDAQAB
+-----END PUBLIC KEY-----
 \"\"\"
 
     private static let publicKey: SecKey? = {
