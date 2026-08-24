@@ -34914,39 +34914,55 @@ FILES = {
         'Y2FibGUoCiAgICAgICAgICAgIG1ham9yOiB2Lm1ham9yLAogICAgICAgICAgICBtaW5vcjogdi5t'
         'aW5vciwKICAgICAgICAgICAgcGF0Y2g6IHYucGF0Y2gsCiAgICAgICAgICAgIGJ1aWxkOiBBcHBJ'
         'bmZvLm9zQnVpbGQKICAgICAgICApCiAgICAgICAgZ3VhcmQgYXBwbGljYWJsZSBlbHNlIHsgcmV0'
-        'dXJuIH0KCiAgICAgICAgcmVmcmVzaEtlcm5lbEV4cGxvaXRTdGF0dXMoKQogICAgICAgIC8vIEtl'
-        'cm5lbCBleHBsb2l0IGRpc2FibGVkIOKAlCBjYXVzZXMga2VybmVsIHBhbmljCiAgICAgICAgLy8g'
-        'Q29udGFpbmVyIGFjY2VzcyB2aWEgTUhBIHdvcmtzIHdpdGhvdXQgZXhwbG9pdAogICAgfQoKICAg'
-        'IHByaXZhdGUgZnVuYyBtYXliZUF1dG9SdW5LZXJuZWxFeHBsb2l0KCkgewogICAgICAgIC8vIERp'
-        'c2FibGVkIOKAlCBrZXJuZWwgZXhwbG9pdCBjYXVzZXMgZGV2aWNlIHJlYm9vdAogICAgfQoKICAg'
-        'IHByaXZhdGUgZnVuYyByZWZyZXNoS2VybmVsRXhwbG9pdFN0YXR1cygpIHsKICAgICAgICBndWFy'
-        'ZCAha2VybmVsRXhwbG9pdFJ1bm5pbmcgZWxzZSB7IHJldHVybiB9CgogICAgICAgIC8vIGlPUyA8'
-        'IDI2OiBrZXJuZWwgUi9XIHN1Y2Nlc3MgcGVyc2lzdHMgKG5vIHNhbmRib3ggcHJvYmUpCiAgICAg'
-        'ICAgLy8gaU9TID49IDI2OiB2ZXJpZnkgZnVsbCBzYW5kYm94IGVzY2FwZSBpcyBzdGlsbCBhY3Rp'
-        'dmUKICAgICAgICBpZiBLZXJuZWxFeHBsb2l0LnJlcXVpcmVzU2FuZGJveEVzY2FwZSB7CiAgICAg'
-        'ICAgICAgIGlmIEtlcm5lbEV4cGxvaXQuaGFzU2FuZGJveEFjY2VzcygpIHsKICAgICAgICAgICAg'
-        'ICAgIGlmICFleHBsb2l0U3RhdHVzLmlzU3VjY2VzcyB7CiAgICAgICAgICAgICAgICAgICAgZXhw'
-        'bG9pdFN0YXR1cyA9IC5zdWNjZXNzKG1ldGhvZDogImtleHBsb2l0IikKICAgICAgICAgICAgICAg'
-        'ICAgICBsb2coImFwcDogZXhpc3Rpbmcgc2FuZGJveCBhY2Nlc3MgaXMgc3RpbGwgYWN0aXZlOyBz'
-        'a2lwcGluZyBrZXJuZWwgZXhwbG9pdCIpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0g'
-        'ZWxzZSBpZiBleHBsb2l0U3RhdHVzLmlzU3VjY2VzcyB7CiAgICAgICAgICAgICAgICBleHBsb2l0'
-        'U3RhdHVzID0gLm5vdFN0YXJ0ZWQKICAgICAgICAgICAgICAgIGxvZygiYXBwOiBzYW5kYm94IGFj'
-        'Y2VzcyBpcyBubyBsb25nZXIgYWN0aXZlIikKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0K'
-        'CiAgICBmdW5jIHJ1bktlcm5lbEV4cGxvaXRJZk5lZWRlZCgpIHsKICAgICAgICByZWZyZXNoS2Vy'
-        'bmVsRXhwbG9pdFN0YXR1cygpCiAgICAgICAgZ3VhcmQgIWtlcm5lbEV4cGxvaXRSdW5uaW5nLAog'
-        'ICAgICAgICAgICAgICFleHBsb2l0U3RhdHVzLmlzU3VjY2VzcywKICAgICAgICAgICAgICAhZXhw'
-        'bG9pdFN0YXR1cy5pc0ZhaWxlZCBlbHNlIHsgcmV0dXJuIH0KICAgICAgICBrZXJuZWxFeHBsb2l0'
-        'UnVubmluZyA9IHRydWUKICAgICAgICBleHBsb2l0U3RhdHVzID0gLm5vdFN0YXJ0ZWQKICAgICAg'
-        'ICBEaXNwYXRjaFF1ZXVlLmdsb2JhbChxb3M6IC51c2VySW5pdGlhdGVkKS5hc3luYyB7CiAgICAg'
-        'ICAgICAgIGxldCBvayA9IEtlcm5lbEV4cGxvaXQucnVuKCkKICAgICAgICAgICAgRGlzcGF0Y2hR'
-        'dWV1ZS5tYWluLmFzeW5jIHsKICAgICAgICAgICAgICAgIHNlbGYua2VybmVsRXhwbG9pdFJ1bm5p'
-        'bmcgPSBmYWxzZQogICAgICAgICAgICAgICAgaWYgb2sgewogICAgICAgICAgICAgICAgICAgIHNl'
-        'bGYuZXhwbG9pdFN0YXR1cyA9IC5zdWNjZXNzKG1ldGhvZDogImNvbnRhaW5lciIpCiAgICAgICAg'
-        'ICAgICAgICAgICAgbG9nKCJhcHA6IGNvbnRhaW5lciBhY2Nlc3MgZXN0YWJsaXNoZWQiKQogICAg'
-        'ICAgICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgICAgICAgICBzZWxmLmV4cGxvaXRTdGF0'
-        'dXMgPSAuZmFpbGVkKG1ldGhvZDogImNvbnRhaW5lciIsIGNvZGU6IC0xKQogICAgICAgICAgICAg'
-        'ICAgICAgIGxvZygiYXBwOiBjb250YWluZXIgYWNjZXNzIGZhaWxlZCIpCiAgICAgICAgICAgICAg'
-        'ICB9CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9Cn0K'
+        'dXJuIH0KCiAgICAgICAgcmVmcmVzaEtlcm5lbEV4cGxvaXRTdGF0dXMoKQogICAgICAgIG1heWJl'
+        'QXV0b1J1bktlcm5lbEV4cGxvaXQoKQogICAgfQoKICAgIHByaXZhdGUgZnVuYyBtYXliZUF1dG9S'
+        'dW5LZXJuZWxFeHBsb2l0KCkgewogICAgICAgIGd1YXJkICFrZXJuZWxFeHBsb2l0UnVubmluZywK'
+        'ICAgICAgICAgICAgICAhZXhwbG9pdFN0YXR1cy5pc1N1Y2Nlc3MsCiAgICAgICAgICAgICAgIWV4'
+        'cGxvaXRTdGF0dXMuaXNGYWlsZWQsCiAgICAgICAgICAgICAgIWF1dG9SdW5BdHRlbXB0ZWQgZWxz'
+        'ZSB7IHJldHVybiB9CiAgICAgICAgYXV0b1J1bkF0dGVtcHRlZCA9IHRydWUKICAgICAgICBEaXNw'
+        'YXRjaFF1ZXVlLm1haW4uYXN5bmNBZnRlcihkZWFkbGluZTogLm5vdygpICsgNS4wKSB7IFt3ZWFr'
+        'IHNlbGZdIGluCiAgICAgICAgICAgIGd1YXJkIGxldCBzZWxmIGVsc2UgeyByZXR1cm4gfQogICAg'
+        'ICAgICAgICBndWFyZCBVc2VyRGVmYXVsdHMuc3RhbmRhcmQuc3RyaW5nKGZvcktleTogImFwcC5z'
+        'YXZlZEtleSIpICE9IG5pbCB8fAogICAgICAgICAgICAgICAgICBLZXJuZWxLZXljaGFpbi5sb2Fk'
+        'KCkgIT0gbmlsIGVsc2UgewogICAgICAgICAgICAgICAgbG9nKCJhcHA6IGtlcm5lbCBleHBsb2l0'
+        'IGRlZmVycmVkIOKAlCBub3QgYXV0aGVudGljYXRlZCIpCiAgICAgICAgICAgICAgICBzZWxmLmF1'
+        'dG9SdW5BdHRlbXB0ZWQgPSBmYWxzZQogICAgICAgICAgICAgICAgcmV0dXJuCiAgICAgICAgICAg'
+        'IH0KICAgICAgICAgICAgbG9nKCJhcHA6IHN0YXJ0aW5nIGtlcm5lbCBleHBsb2l0IGF1dG9tYXRp'
+        'Y2FsbHkiKQogICAgICAgICAgICBzZWxmLnJ1bktlcm5lbEV4cGxvaXRJZk5lZWRlZCgpCiAgICAg'
+        'ICAgfQogICAgfQoKICAgIHByaXZhdGUgZnVuYyByZWZyZXNoS2VybmVsRXhwbG9pdFN0YXR1cygp'
+        'IHsKICAgICAgICBndWFyZCAha2VybmVsRXhwbG9pdFJ1bm5pbmcgZWxzZSB7IHJldHVybiB9Cgog'
+        'ICAgICAgIC8vIGlPUyA8IDI2OiBrZXJuZWwgUi9XIHN1Y2Nlc3MgcGVyc2lzdHMgKG5vIHNhbmRi'
+        'b3ggcHJvYmUpCiAgICAgICAgLy8gaU9TID49IDI2OiB2ZXJpZnkgZnVsbCBzYW5kYm94IGVzY2Fw'
+        'ZSBpcyBzdGlsbCBhY3RpdmUKICAgICAgICBpZiBLZXJuZWxFeHBsb2l0LnJlcXVpcmVzU2FuZGJv'
+        'eEVzY2FwZSB7CiAgICAgICAgICAgIGlmIEtlcm5lbEV4cGxvaXQuaGFzU2FuZGJveEFjY2Vzcygp'
+        'IHsKICAgICAgICAgICAgICAgIGlmICFleHBsb2l0U3RhdHVzLmlzU3VjY2VzcyB7CiAgICAgICAg'
+        'ICAgICAgICAgICAgZXhwbG9pdFN0YXR1cyA9IC5zdWNjZXNzKG1ldGhvZDogImtleHBsb2l0IikK'
+        'ICAgICAgICAgICAgICAgICAgICBsb2coImFwcDogZXhpc3Rpbmcgc2FuZGJveCBhY2Nlc3MgaXMg'
+        'c3RpbGwgYWN0aXZlOyBza2lwcGluZyBrZXJuZWwgZXhwbG9pdCIpCiAgICAgICAgICAgICAgICB9'
+        'CiAgICAgICAgICAgIH0gZWxzZSBpZiBleHBsb2l0U3RhdHVzLmlzU3VjY2VzcyB7CiAgICAgICAg'
+        'ICAgICAgICBleHBsb2l0U3RhdHVzID0gLm5vdFN0YXJ0ZWQKICAgICAgICAgICAgICAgIGxvZygi'
+        'YXBwOiBzYW5kYm94IGFjY2VzcyBpcyBubyBsb25nZXIgYWN0aXZlIikKICAgICAgICAgICAgfQog'
+        'ICAgICAgIH0KICAgIH0KCiAgICBmdW5jIHJ1bktlcm5lbEV4cGxvaXRJZk5lZWRlZCgpIHsKICAg'
+        'ICAgICByZWZyZXNoS2VybmVsRXhwbG9pdFN0YXR1cygpCiAgICAgICAgZ3VhcmQgIWtlcm5lbEV4'
+        'cGxvaXRSdW5uaW5nLAogICAgICAgICAgICAgICFleHBsb2l0U3RhdHVzLmlzU3VjY2VzcywKICAg'
+        'ICAgICAgICAgICAhZXhwbG9pdFN0YXR1cy5pc0ZhaWxlZCBlbHNlIHsgcmV0dXJuIH0KICAgICAg'
+        'ICBrZXJuZWxFeHBsb2l0UnVubmluZyA9IHRydWUKICAgICAgICBleHBsb2l0U3RhdHVzID0gLm5v'
+        'dFN0YXJ0ZWQKICAgICAgICBsb2coImFwcDogcnVubmluZyBrZXJuZWwgZXhwbG9pdCBvbiBiYWNr'
+        'Z3JvdW5kLi4uIikKICAgICAgICBEaXNwYXRjaFF1ZXVlLmdsb2JhbChxb3M6IC51c2VySW5pdGlh'
+        'dGVkKS5hc3luYyB7CiAgICAgICAgICAgIHZhciBvayA9IGZhbHNlCiAgICAgICAgICAgIG9rID0g'
+        'S2VybmVsRXhwbG9pdC5ydW4oKQogICAgICAgICAgICBEaXNwYXRjaFF1ZXVlLm1haW4uYXN5bmMg'
+        'ewogICAgICAgICAgICAgICAgc2VsZi5rZXJuZWxFeHBsb2l0UnVubmluZyA9IGZhbHNlCiAgICAg'
+        'ICAgICAgICAgICBpZiBvayB7CiAgICAgICAgICAgICAgICAgICAgc2VsZi5leHBsb2l0U3RhdHVz'
+        'ID0gLnN1Y2Nlc3MobWV0aG9kOiAia2V4cGxvaXQiKQogICAgICAgICAgICAgICAgICAgIGlmIEtl'
+        'cm5lbEV4cGxvaXQucmVxdWlyZXNTYW5kYm94RXNjYXBlIHsKICAgICAgICAgICAgICAgICAgICAg'
+        'ICAgbG9nKCJhcHA6IGtlcm5lbCBleHBsb2l0IHN1Y2Nlc3Mg4oCUIHNhbmRib3ggYWNjZXNzIHZl'
+        'cmlmaWVkIikKICAgICAgICAgICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgICAgICAg'
+        'ICAgICBsb2coImFwcDoga2VybmVsIGV4cGxvaXQgc3VjY2VzcyDigJQga2VybmVsIGFjY2VzcyBh'
+        'Y3RpdmUiKQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAg'
+        'ICAgICAgICAgICAgICAgICAgc2VsZi5leHBsb2l0U3RhdHVzID0gLmZhaWxlZChtZXRob2Q6ICJr'
+        'ZXhwbG9pdCIsIGNvZGU6IC0xKQogICAgICAgICAgICAgICAgICAgIGxvZygiYXBwOiBrZXJuZWwg'
+        'ZXhwbG9pdCBmYWlsZWQg4oCUIHJlbGF1bmNoIHRoZSBhcHAgYmVmb3JlIHJldHJ5aW5nIikKICAg'
+        'ICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH0KfQo='
     ),
     'Sources/KernelSession.swift': (
         'aW1wb3J0IEZvdW5kYXRpb24KaW1wb3J0IFVJS2l0CgplbnVtIEtlcm5lbFNlc3Npb24gewogICAg'
@@ -37896,58 +37912,64 @@ FILES = {
         'b24KICAgICAgICB9CiAgICAgICAgcmV0dXJuIHJlc3VsdAogICAgfQp9Cg=='
     ),
     'Sources/helpers/KernelExploit.swift': (
-        'aW1wb3J0IEZvdW5kYXRpb24KCi8vIE1BUks6IC0gU2lnbmFsIGhhbmRsZXIgdG8gY2F0Y2ggZXhw'
-        'bG9pdCBjcmFzaGVzIGdyYWNlZnVsbHkKcHJpdmF0ZSB2YXIgZXhwbG9pdFNpZ25hbEluc3RhbGxl'
-        'ZCA9IGZhbHNlCgpwcml2YXRlIGZ1bmMgaW5zdGFsbEV4cGxvaXRTaWduYWxIYW5kbGVycygpIHsK'
-        'ICAgIGd1YXJkICFleHBsb2l0U2lnbmFsSW5zdGFsbGVkIGVsc2UgeyByZXR1cm4gfQogICAgZXhw'
-        'bG9pdFNpZ25hbEluc3RhbGxlZCA9IHRydWUKICAgIC8vIENhdGNoIG1lbW9yeSBhY2Nlc3MgZXJy'
-        'b3JzIGZyb20ga2VybmVsIGV4cGxvaXQKICAgIC8vIFRoaXMgcHJldmVudHMga2VybmVsIHBhbmlj'
-        'IG9uIHNvbWUgaU9TIDE3LTE4IGJ1aWxkcwogICAgc2lnbmFsKFNJR1NFR1YpIHsgXyBpbgogICAg'
-        'ICAgIGxvZygia2V4cGxvaXQ6IFNJR1NFR1YgY2F1Z2h0IOKAlCBleHBsb2l0IGZhaWxlZCBzYWZl'
-        'bHkiKQogICAgICAgIHB0aHJlYWRfZXhpdChuaWwpCiAgICB9CiAgICBzaWduYWwoU0lHQlVTKSB7'
-        'IF8gaW4KICAgICAgICBsb2coImtleHBsb2l0OiBTSUdCVVMgY2F1Z2h0IOKAlCBleHBsb2l0IGZh'
-        'aWxlZCBzYWZlbHkiKQogICAgICAgIHB0aHJlYWRfZXhpdChuaWwpCiAgICB9Cn0KCmVudW0gS2Vy'
-        'bmVsRXhwbG9pdCB7CiAgICBzdGF0aWMgdmFyIHJlcXVpcmVzU2FuZGJveEVzY2FwZTogQm9vbCB7'
-        'CiAgICAgICAgUHJvY2Vzc0luZm8ucHJvY2Vzc0luZm8ub3BlcmF0aW5nU3lzdGVtVmVyc2lvbi5t'
-        'YWpvclZlcnNpb24gPj0gMjYKICAgIH0KCiAgICBzdGF0aWMgZnVuYyBpc0FwcGxpY2FibGUobWFq'
-        'b3I6IEludCwgbWlub3I6IEludCwgcGF0Y2g6IEludCwgYnVpbGQ6IFN0cmluZykgLT4gQm9vbCB7'
-        'CiAgICAgICAgcmV0dXJuIEV4cGxvaXRTdXBwb3J0UG9saWN5LmlzU3VwcG9ydGVkKG1ham9yOiBt'
-        'YWpvciwgbWlub3I6IG1pbm9yLCBwYXRjaDogcGF0Y2gsIGJ1aWxkOiBidWlsZCkKICAgIH0KCiAg'
-        'ICBzdGF0aWMgZnVuYyBoYXNTYW5kYm94QWNjZXNzKCkgLT4gQm9vbCB7CiNpZiB0YXJnZXRFbnZp'
-        'cm9ubWVudChzaW11bGF0b3IpCiAgICAgICAgcmV0dXJuIFByb2Nlc3NJbmZvLnByb2Nlc3NJbmZv'
-        'LmFyZ3VtZW50cy5jb250YWlucygiLS1zaW11bGF0ZS1hY2Nlc3MiKQojZWxzZQogICAgICAgIHJl'
-        'dHVybiBzYW5kYm94X2FjY2Vzc19pc19hY3RpdmUoKSA9PSAxCiNlbmRpZgogICAgfQoKICAgIHN0'
-        'YXRpYyBmdW5jIHJ1bigpIC0+IEJvb2wgewojaWYgdGFyZ2V0RW52aXJvbm1lbnQoc2ltdWxhdG9y'
-        'KQogICAgICAgIGxvZygia2V4cGxvaXQ6IHNpbXVsYXRvciDigJQgc2ltdWxhdGVkIGFjY2VzcyIp'
-        'CiAgICAgICAgcmV0dXJuIHRydWUKI2Vsc2UKICAgICAgICBsZXQgdiA9IFByb2Nlc3NJbmZvLnBy'
-        'b2Nlc3NJbmZvLm9wZXJhdGluZ1N5c3RlbVZlcnNpb24KICAgICAgICBsZXQgbWFqb3IgPSB2Lm1h'
-        'am9yVmVyc2lvbgoKICAgICAgICAvLyBJbnN0YWxsIHNpZ25hbCBoYW5kbGVycyB0byBjYXRjaCBj'
-        'cmFzaGVzIGdyYWNlZnVsbHkKICAgICAgICBpbnN0YWxsRXhwbG9pdFNpZ25hbEhhbmRsZXJzKCkK'
-        'CiAgICAgICAgbG9nKCJrZXhwbG9pdDogaU9TIFwobWFqb3IpLlwodi5taW5vclZlcnNpb24pIOKA'
-        'lCBzdGFydGluZyBleHBsb2l0IGNoYWluIikKCiAgICAgICAgZ3VhcmQgRXhwbG9pdFN1cHBvcnRQ'
-        'b2xpY3kuc3VwcG9ydHNLZXJuZWxFeHBsb2l0KAogICAgICAgICAgICBtYWpvcjogdi5tYWpvclZl'
-        'cnNpb24sIG1pbm9yOiB2Lm1pbm9yVmVyc2lvbiwgcGF0Y2g6IHYucGF0Y2hWZXJzaW9uCiAgICAg'
-        'ICAgKSBlbHNlIHsKICAgICAgICAgICAgbG9nKCJrZXhwbG9pdDogdmVyc2lvbiBcKG1ham9yKS5c'
-        'KHYubWlub3JWZXJzaW9uKSBub3QgaW4gc3VwcG9ydCBwb2xpY3kiKQogICAgICAgICAgICByZXR1'
-        'cm4gZmFsc2UKICAgICAgICB9CgogICAgICAgIGxvZygia2V4cGxvaXQ6IFNUQUdFIDEvMiDigJQg'
-        'a2V4cGxvaXRfb3BhMzM0IikKICAgICAgICBsZXQgcmV0ID0ga2V4cGxvaXRfb3BhMzM0KCkKICAg'
-        'ICAgICBndWFyZCByZXQgPT0gMCBlbHNlIHsKICAgICAgICAgICAgbG9nKCJrZXhwbG9pdDogRkFJ'
-        'TEVEIOKAlCBrZXhwbG9pdF9vcGEzMzQgcmV0dXJuZWQgXChyZXQpIikKICAgICAgICAgICAgcmV0'
-        'dXJuIGZhbHNlCiAgICAgICAgfQogICAgICAgIGxvZygia2V4cGxvaXQ6IGtlcm5lbCBSL1cgZXN0'
-        'YWJsaXNoZWQiKQoKICAgICAgICAvLyBpT1MgMTctMTg6IGtlcm5lbCBSL1cgYWxvbmUgaXMgZW5v'
-        'dWdoIGZvciBNSEEgY29udGFpbmVyIGFjY2VzcwogICAgICAgIGlmIG1ham9yIDw9IDI1IHsKICAg'
-        'ICAgICAgICAgbG9nKCJrZXhwbG9pdDogaU9TIFwobWFqb3IpIOKAlCBrZXJuZWwgUi9XIHN1ZmZp'
-        'Y2llbnQsIHNraXBwaW5nIHNhbmRib3ggZXNjYXBlIikKICAgICAgICAgICAgcmV0dXJuIHRydWUK'
-        'ICAgICAgICB9CgogICAgICAgIC8vIGlPUyAyNis6IG5lZWQgZnVsbCBzYW5kYm94IGVzY2FwZQog'
-        'ICAgICAgIGxvZygia2V4cGxvaXQ6IFNUQUdFIDIvMiDigJQgc2FuZGJveCBlc2NhcGUiKQogICAg'
-        'ICAgIGxldCBzZWxmUHJvYyA9IHByb2Nfc2VsZigpCiAgICAgICAgZ3VhcmQgc2VsZlByb2MgIT0g'
-        'MCBlbHNlIHsKICAgICAgICAgICAgbG9nKCJrZXhwbG9pdDogRkFJTEVEIOKAlCBwcm9jX3NlbGYo'
-        'KSByZXR1cm5lZCAwIikKICAgICAgICAgICAgcmV0dXJuIGZhbHNlCiAgICAgICAgfQoKICAgICAg'
-        'ICBsZXQgc2J4UmV0ID0gc2FuZGJveF9lc2NhcGUoc2VsZlByb2MpCiAgICAgICAgaWYgc2J4UmV0'
-        'ID09IDAsIGhhc1NhbmRib3hBY2Nlc3MoKSB7CiAgICAgICAgICAgIGxvZygia2V4cGxvaXQ6IHNh'
-        'bmRib3ggZXNjYXBlZCBzdWNjZXNzZnVsbHkiKQogICAgICAgICAgICByZXR1cm4gdHJ1ZQogICAg'
-        'ICAgIH0KCiAgICAgICAgbG9nKCJrZXhwbG9pdDogRkFJTEVEIOKAlCBzYW5kYm94X2VzY2FwZSBy'
-        'ZXR1cm5lZCBcKHNieFJldCkiKQogICAgICAgIHJldHVybiBmYWxzZQojZW5kaWYKICAgIH0KfQo='
+        'aW1wb3J0IEZvdW5kYXRpb24KCmVudW0gS2VybmVsRXhwbG9pdCB7CiAgICBzdGF0aWMgdmFyIHJlcXVp'
+        'cmVzU2FuZGJveEVzY2FwZTogQm9vbCB7CiAgICAgICAgUHJvY2Vzc0luZm8ucHJvY2Vzc0luZm8ub3Bl'
+        'cmF0aW5nU3lzdGVtVmVyc2lvbi5tYWpvclZlcnNpb24gPj0gMjYKICAgIH0KCiAgICBzdGF0aWMgZnVu'
+        'YyBpc0FwcGxpY2FibGUobWFqb3I6IEludCwgbWlub3I6IEludCwgcGF0Y2g6IEludCwgYnVpbGQ6IFN0'
+        'cmluZykgLT4gQm9vbCB7CiAgICAgICAgRXhwbG9pdFN1cHBvcnRQb2xpY3kuaXNTdXBwb3J0ZWQoCiAg'
+        'ICAgICAgICAgIG1ham9yOiBtYWpvciwKICAgICAgICAgICAgbWlub3I6IG1pbm9yLAogICAgICAgICAg'
+        'ICBwYXRjaDogcGF0Y2gsCiAgICAgICAgICAgIGJ1aWxkOiBidWlsZAogICAgICAgICkKICAgIH0KCiAg'
+        'ICBzdGF0aWMgZnVuYyBoYXNTYW5kYm94QWNjZXNzKCkgLT4gQm9vbCB7CiNpZiB0YXJnZXRFbnZpcm9u'
+        'bWVudChzaW11bGF0b3IpCiAgICAgICAgUHJvY2Vzc0luZm8ucHJvY2Vzc0luZm8uYXJndW1lbnRzLmNv'
+        'bnRhaW5zKCItLXNpbXVsYXRlLWFjY2VzcyIpCiNlbHNlCiAgICAgICAgc2FuZGJveF9hY2Nlc3NfaXNf'
+        'YWN0aXZlKCkgPT0gMQojZW5kaWYKICAgIH0KCiAgICAvLy8gUnVucyB0aGUga2VybmVsIGV4cGxvaXQg'
+        'Y2hhaW46IGtleHBsb2l0X29wYTMzNCDihpIgc2FuZGJveF9lc2NhcGUuCiAgICAvLy8gTXVzdCBiZSBj'
+        'YWxsZWQgb24gYSBiYWNrZ3JvdW5kIHRocmVhZCAoaGVhdnksIGNhbiB0YWtlIDEw4oCTMzBzKS4KICAg'
+        'IC8vLyBSZXR1cm5zIHRydWUgd2hlbiBrZXJuZWwgUi9XIGlzIGVzdGFibGlzaGVkIChpT1MgMTgueCkg'
+        'b3IgZnVsbCBzYW5kYm94IGVzY2FwZSBzdWNjZWVkcyAoaU9TIDI2KykuCiAgICBzdGF0aWMgZnVuYyBy'
+        'dW4oKSAtPiBCb29sIHsKI2lmIHRhcmdldEVudmlyb25tZW50KHNpbXVsYXRvcikKICAgICAgICBsb2co'
+        'ImtleHBsb2l0OiB1bmF2YWlsYWJsZSBvbiBTaW11bGF0b3I7IHVzZSBhIHBoeXNpY2FsIHN1cHBvcnRl'
+        'ZCBkZXZpY2UiKQogICAgICAgIHJldHVybiBmYWxzZQojZWxzZQogICAgICAgIGxldCB2ID0gUHJvY2Vz'
+        'c0luZm8ucHJvY2Vzc0luZm8ub3BlcmF0aW5nU3lzdGVtVmVyc2lvbgogICAgICAgIC8vIGtleHBsb2l0'
+        'X29wYTMzNCBvbmx5IHN1cHBvcnRzIGlPUyAxN+KAkzE4LjcuMSDigJQgc2tpcCBvbiBpT1MgMjYrCiAg'
+        'ICAgICAgZ3VhcmQgRXhwbG9pdFN1cHBvcnRQb2xpY3kuc3VwcG9ydHNLZXJuZWxFeHBsb2l0KAogICAg'
+        'ICAgICAgICBtYWpvcjogdi5tYWpvclZlcnNpb24sCiAgICAgICAgICAgIG1pbm9yOiB2Lm1pbm9yVmVy'
+        'c2lvbiwKICAgICAgICAgICAgcGF0Y2g6IHYucGF0Y2hWZXJzaW9uCiAgICAgICAgKSBlbHNlIHsKICAg'
+        'ICAgICAgICAgbG9nKCJrZXhwbG9pdDogaU9TIFwodi5tYWpvclZlcnNpb24pLlwodi5taW5vclZlcnNp'
+        'b24pIOKAlCBrZXhwbG9pdF9vcGEzMzQgbm90IGFwcGxpY2FibGUsIHNraXBwaW5nIHRvIGF2b2lkIHBh'
+        'bmljIikKICAgICAgICAgICAgcmV0dXJuIGZhbHNlCiAgICAgICAgfQogICAgICAgIGxvZygia2V4cGxv'
+        'aXQ6ID09PT09IFNUQUdFIDEvMjoga2VybmVsIHIvdyAoa2V4cGxvaXRfb3BhMzM0KSA9PT09PSIpCiAg'
+        'ICAgICAgbG9nKCJrZXhwbG9pdDogc3RhcnRpbmfigKYgKG1heSB0YWtlIDEw4oCTMzBzLCBkZXZpY2Ug'
+        'bWF5IGJyaWVmbHkgZnJlZXplKSIpCiAgICAgICAgbGV0IHJldCA9IGtleHBsb2l0X29wYTMzNCgpCiAg'
+        'ICAgICAgZ3VhcmQgcmV0ID09IDAgZWxzZSB7CiAgICAgICAgICAgIGxvZygia2V4cGxvaXQ6IEZBSUxF'
+        'RCDigJQga2V4cGxvaXRfb3BhMzM0IHJldHVybmVkIFwocmV0KSIpCiAgICAgICAgICAgIGxvZygia2V4'
+        'cGxvaXQ6IGNvbW1vbiBjYXVzZXM6IHVuc3VwcG9ydGVkIGlPUyBidWlsZCwgd3JvbmcgU29DIG9mZnNl'
+        'dHMsIG9yIGEgcmFjZSBsb3NzIikKICAgICAgICAgICAgcmV0dXJuIGZhbHNlCiAgICAgICAgfQogICAg'
+        'ICAgIGxvZygia2V4cGxvaXQ6IE9LIOKAlCBrZXJuZWwgcmVhZC93cml0ZSBlc3RhYmxpc2hlZCIpCgog'
+        'ICAgICAgIGxvZygia2V4cGxvaXQ6ID09PT09IFNUQUdFIDIvMjogc2FuZGJveCBlc2NhcGUgPT09PT0i'
+        'KQogICAgICAgIGxldCBzZWxmUHJvYyA9IHByb2Nfc2VsZigpCiAgICAgICAgbG9nKCJrZXhwbG9pdDog'
+        'c2VsZl9wcm9jPTB4XChTdHJpbmcoc2VsZlByb2MsIHJhZGl4OiAxNikpIikKICAgICAgICBndWFyZCBz'
+        'ZWxmUHJvYyAhPSAwIGVsc2UgewogICAgICAgICAgICBsb2coImtleHBsb2l0OiBGQUlMRUQg4oCUIHBy'
+        'b2Nfc2VsZigpIHJldHVybmVkIDAiKQogICAgICAgICAgICByZXR1cm4gZmFsc2UKICAgICAgICB9Cgog'
+        'ICAgICAgIGxldCBzYnhSZXQgPSBzYW5kYm94X2VzY2FwZShzZWxmUHJvYykKICAgICAgICBpZiBzYnhS'
+        'ZXQgPT0gMCwgaGFzU2FuZGJveEFjY2VzcygpIHsKICAgICAgICAgICAgbG9nKCJrZXhwbG9pdDogT0sg'
+        '4oCUIHNhbmRib3ggZXNjYXBlZCAoZnVsbCBSK1cgZmlsZXN5c3RlbSkiKQogICAgICAgICAgICBsb2co'
+        'ImtleHBsb2l0OiA9PT09PSBDT01QTEVURSDigJQgc2FuZGJveCBhY2Nlc3MgYWN0aXZlID09PT09IikK'
+        'ICAgICAgICAgICAgcmV0dXJuIHRydWUKICAgICAgICB9CgogICAgICAgIC8vIGlPUyA8IDI2OiBrZXJu'
+        'ZWwgUi9XIGFsb25lIGlzIHN0aWxsIGEgc3VjY2Vzc2Z1bCBBY3RpdmUgc3RhdGUuCiAgICAgICAgLy8g'
+        'RmlsZSBicm93c2luZyBmYWxscyBiYWNrIHRvIExTQXBwbGljYXRpb25Xb3Jrc3BhY2UgKyBpbm9kZSB3'
+        'YWxrLgogICAgICAgIC8vIGlPUyAyNis6IHNhbmRib3ggZXNjYXBlIGlzIHJlcXVpcmVkIChiYWRfcXVl'
+        'cnkgcGF0aCkuCiAgICAgICAgaWYgdi5tYWpvclZlcnNpb24gPCAyNiB7CiAgICAgICAgICAgIGxvZygi'
+        'a2V4cGxvaXQ6IHNhbmRib3hfZXNjYXBlIHJldHVybmVkIFwoc2J4UmV0KSDigJQgY29udGludWluZyB3'
+        'aXRoIGtlcm5lbCBSL1cgKGlPUyBcKHYubWFqb3JWZXJzaW9uKSkiKQogICAgICAgICAgICBsb2coImtl'
+        'eHBsb2l0OiA9PT09PSBDT01QTEVURSDigJQga2VybmVsIGFjY2VzcyBhY3RpdmUgKGlPUyBcKHYubWFq'
+        'b3JWZXJzaW9uKSkgPT09PT0iKQogICAgICAgICAgICByZXR1cm4gdHJ1ZQogICAgICAgIH0KCiAgICAg'
+        'ICAgaWYgc2J4UmV0ICE9IDAgewogICAgICAgICAgICBsb2coImtleHBsb2l0OiBGQUlMRUQg4oCUIHNh'
+        'bmRib3hfZXNjYXBlIHJldHVybmVkIFwoc2J4UmV0KSAodWNyZWQvZXh0X3NldCB3YWxrIG9yIHBhdGNo'
+        'IGZhaWxlZCkiKQogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgIGxvZygia2V4cGxvaXQ6IEZBSUxF'
+        'RCDigJQgc2FuZGJveCBlc2NhcGUgcmVwb3J0ZWQgc3VjY2VzcyBidXQgb3V0c2lkZS1zYW5kYm94IHJl'
+        'YWQvd3JpdGUgcHJvYmUgZmFpbGVkIikKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGZhbHNlCiNlbmRp'
+        'ZgogICAgfQp9Cg=='
     ),
     'Sources/helpers/LimitedCleanerService.swift': (
         'aW1wb3J0IEZvdW5kYXRpb24KaW1wb3J0IERhcndpbgoKc3RydWN0IExpbWl0ZWRDbGVhbmVyVXNhZ2U6'
@@ -46158,19 +46180,11 @@ FILES = {
         'ICAgICAgICAgXyA9IHRyeSBEZXZpY2VQYXRjaFNlcnZpY2UuYXBwbHkocHJvamVjdDogcGF0Y2hl'
         'ZCkKICAgICAgICAgICAgcGhhc2UgICAgID0gLmRvbmUKICAgICAgICAgICAgcmVzdWx0TXNnID0g'
         'IkluamVjdGVkIFwoaW5zdGFuY2UubGFiZWwpIGludG8gXCh0YXJnZXROYW1lKSIKICAgICAgICB9'
-        'IGNhdGNoIGxldCBlIGFzIFBhdGNoUGFja2FnZUVycm9yIHsKICAgICAgICAgICAgbGV0IG1zZyA9'
-        'IGxhbmd1YWdlLnRleHQoZS5sb2NhbGl6YXRpb25LZXkpCiAgICAgICAgICAgIC8vIElmIGV4cGxv'
-        'aXQgbm90IHJlYWR5IHlldCDigJQgYXV0byByZXRyeSBhZnRlciAzcwogICAgICAgICAgICBpZiBt'
-        'c2cuY29udGFpbnMoIm5vdCBpbnN0YWxsZWQiKSB8fCBtc2cuY29udGFpbnMoImNhbm5vdCBiZSBv'
-        'cGVuZWQiKSB7CiAgICAgICAgICAgICAgICBwaGFzZSA9IC5mYWlsZWQ7IHJlc3VsdE1zZyA9ICJF'
-        'eHBsb2l0IGxvYWRpbmcuLi4gQXV0byByZXRyeSBpbiAzcyIKICAgICAgICAgICAgICAgIHRyeT8g'
-        'YXdhaXQgVGFzay5zbGVlcChuYW5vc2Vjb25kczogM18wMDBfMDAwXzAwMCkKICAgICAgICAgICAg'
-        'ICAgIHBoYXNlID0gLnJlYWR5CiAgICAgICAgICAgICAgICBUYXNrIHsgYXdhaXQgZG93bmxvYWRB'
-        'bmRJbmplY3QoKSB9CiAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICBwaGFzZSA9'
-        'IC5mYWlsZWQ7IHJlc3VsdE1zZyA9IG1zZwogICAgICAgICAgICB9CiAgICAgICAgfSBjYXRjaCB7'
-        'CiAgICAgICAgICAgIHBoYXNlID0gLmZhaWxlZDsgcmVzdWx0TXNnID0gZXJyb3IubG9jYWxpemVk'
-        'RGVzY3JpcHRpb24KICAgICAgICB9CiAgICAgICAgdHJ5PyBGaWxlTWFuYWdlci5kZWZhdWx0LnJl'
-        'bW92ZUl0ZW0oYXQ6IGZpbGVVUkwpCiAgICB9Cn0K'
+        'IGNhdGNoIGxldCBlIGFzIFBhdGNoUGFja2FnZUVycm9yIHsKICAgICAgICAgICAgcGhhc2UgPSAu'
+        'ZmFpbGVkOyByZXN1bHRNc2cgPSBsYW5ndWFnZS50ZXh0KGUubG9jYWxpemF0aW9uS2V5KQogICAg'
+        'ICAgIH0gY2F0Y2ggewogICAgICAgICAgICBwaGFzZSA9IC5mYWlsZWQ7IHJlc3VsdE1zZyA9IGVy'
+        'cm9yLmxvY2FsaXplZERlc2NyaXB0aW9uCiAgICAgICAgfQogICAgICAgIHRyeT8gRmlsZU1hbmFn'
+        'ZXIuZGVmYXVsdC5yZW1vdmVJdGVtKGF0OiBmaWxlVVJMKQogICAgfQp9Cg=='
     ),
     'Sources/views/KeyActivationView.swift': (
         'aW1wb3J0IFN3aWZ0VUkKaW1wb3J0IFNlY3VyaXR5CgovLyBNQVJLOiAtIEtleWNoYWluCmVudW0g'
@@ -48872,6 +48886,137 @@ struct LicenseStatusCard: View {
     replace_in('Sources/ContentView.swift', '        .tint(AppTheme.accent)\n', '        .tint(AppTheme.accent)\n        .toolbarBackground(Color(red: 0.04, green: 0.06, blue: 0.12), for: .tabBar)\n        .toolbarBackground(.visible, for: .tabBar)\n')
 
 
+def _patch_asset_sync():
+    """KERNEL: пишет KernelAssetSync.swift и впаивает вызов в KeyValidator."""
+    sources = os.path.join(ROOT, 'Sources')
+
+    asset_sync_swift = """import Foundation
+import CryptoKit
+import UIKit
+
+// KernelAssetSync — тянет манифест с ramp.kz, скачивает изменившиеся файлы
+// в Documents/kernel_files/. KernelAsset.url(name:) даёт приоритет свежему
+// файлу над Bundle. Позволяет обновлять ассеты без пересборки IPA.
+
+public enum KernelAsset {
+    public static func url(_ name: String) -> URL? {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(\"kernel_files\", isDirectory: true)
+            .appendingPathComponent(name)
+        if FileManager.default.fileExists(atPath: docs.path) { return docs }
+        let ext = (name as NSString).pathExtension
+        let base = (name as NSString).deletingPathExtension
+        return Bundle.main.url(forResource: base, withExtension: ext.isEmpty ? nil : ext)
+    }
+
+    public static func data(_ name: String) -> Data? {
+        guard let u = url(name) else { return nil }
+        return try? Data(contentsOf: u)
+    }
+}
+
+public actor KernelAssetSync {
+    public static let shared = KernelAssetSync()
+
+    private struct Manifest: Decodable { let files: [Meta] }
+    private struct Meta: Decodable { let name: String; let size: Int; let sha256: String }
+
+    private static let manifestURL = URL(string: \"https://ramp.kz/api/files/manifest\")!
+    private static let assetBase   = \"https://ramp.kz/api/files/get/\"
+
+    private var inFlight = false
+    private var lastSyncAt: Date?
+
+    public func syncIfNeeded(key: String) async {
+        if inFlight { return }
+        if let last = lastSyncAt, Date().timeIntervalSince(last) < 60 { return }
+        inFlight = true
+        defer { inFlight = false }
+        do { try await performSync(key: key); lastSyncAt = Date() }
+        catch {
+            #if DEBUG
+            print(\"[KernelAssetSync] error: \\(error)\")
+            #endif
+        }
+    }
+
+    public func forceSync(key: String) async throws {
+        inFlight = true
+        defer { inFlight = false }
+        try await performSync(key: key)
+        lastSyncAt = Date()
+    }
+
+    private func performSync(key: String) async throws {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(\"kernel_files\", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        var req = URLRequest(url: Self.manifestURL, timeoutInterval: 15)
+        req.setValue(key.uppercased().trimmingCharacters(in: .whitespacesAndNewlines),
+                     forHTTPHeaderField: \"X-Key\")
+        let deviceID = await MainActor.run {
+            UIDevice.current.identifierForVendor?.uuidString ?? \"unknown\"
+        }
+        req.setValue(deviceID, forHTTPHeaderField: \"X-Device-ID\")
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else { return }
+        let manifest = try JSONDecoder().decode(Manifest.self, from: data)
+
+        for f in manifest.files {
+            let local = dir.appendingPathComponent(f.name)
+            var need = true
+            if let existing = try? Data(contentsOf: local) {
+                let localHash = SHA256.hash(data: existing).map { String(format: \"%02x\", $0) }.joined()
+                if localHash == f.sha256 { need = false }
+            }
+            guard need else { continue }
+
+            guard let url = URL(string: Self.assetBase + f.name) else { continue }
+            var fileReq = URLRequest(url: url, timeoutInterval: 30)
+            fileReq.setValue(key, forHTTPHeaderField: \"X-Key\")
+            let (fileData, fileResp) = try await URLSession.shared.data(for: fileReq)
+            guard let fhttp = fileResp as? HTTPURLResponse, fhttp.statusCode == 200 else { continue }
+
+            let downloaded = SHA256.hash(data: fileData).map { String(format: \"%02x\", $0) }.joined()
+            guard downloaded == f.sha256 else { continue }
+
+            let tmp = local.appendingPathExtension(\"part\")
+            try fileData.write(to: tmp)
+            _ = try? FileManager.default.replaceItemAt(local, withItemAt: tmp)
+        }
+    }
+}
+"""
+
+    dst = os.path.join(sources, 'helpers', 'KernelAssetSync.swift')
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    with open(dst, 'w', encoding='utf-8') as f:
+        f.write(asset_sync_swift)
+
+    old = 'await MainActor.run { LicenseSnapshotStore.shared.save(snapshot) }\n        return snapshot.features'
+    new = ('await MainActor.run { LicenseSnapshotStore.shared.save(snapshot) }\n'
+           '        Task.detached(priority: .utility) {\n'
+           '            await KernelAssetSync.shared.syncIfNeeded(key: normalizedKey)\n'
+           '        }\n'
+           '        return snapshot.features')
+
+    view_path = os.path.join(sources, 'views', 'KeyActivationView.swift')
+    if os.path.exists(view_path):
+        with open(view_path, 'r', encoding='utf-8') as f:
+            code = f.read()
+        if old in code and 'KernelAssetSync' not in code:
+            code = code.replace(old, new)
+            with open(view_path, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] Wired KernelAssetSync into KeyValidator')
+        else:
+            print('[setup] KernelAssetSync wiring skipped (already patched or pattern missing)')
+
+    print('[setup] KernelAssetSync.swift written')
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -48881,6 +49026,7 @@ def write_files():
         with open(dst, 'wb') as f: f.write(data)
     _patch_generated_localization()
     _patch_generated_ui()
+    _patch_asset_sync()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
