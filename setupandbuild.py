@@ -50900,6 +50900,204 @@ def _patch_theme_wire():
             f.write(code)
 
 
+def _patch_launcher_and_boot():
+    """KERNEL: KernelGameLauncher + BootScreen + Auto-launch после инжекта + HomeCommandHeader."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    views = os.path.join(ROOT, 'Sources', 'views')
+    os.makedirs(helpers, exist_ok=True)
+
+    # ── 1. KernelGameLauncher.swift ──────────────────────────
+    launcher_swift_lines = [
+        'import Foundation',
+        'import UIKit',
+        '',
+        '// KernelGameLauncher — открывает Free Fire / Free Fire MAX / TH.',
+        '// Пробует известные URL schemes, при неудаче — App Store страницу.',
+        'public enum KernelGameLauncher {',
+        '    public struct GameTarget {',
+        '        public let bundleID: String',
+        '        public let schemes: [String]',
+        '        public let appStoreID: String',
+        '        public let displayName: String',
+        '    }',
+
+        '    public static let freeFire = GameTarget(',
+        '        bundleID: "com.dts.freefireth",',
+        '        schemes: ["freefire", "freefireth", "garenaff", "com.dts.freefireth"],',
+        '        appStoreID: "1300146617",',
+        '        displayName: "Free Fire"',
+        '    )',
+        '    public static let freeFireMax = GameTarget(',
+        '        bundleID: "com.dts.freefiremax",',
+        '        schemes: ["freefiremax", "garenaffmax", "com.dts.freefiremax"],',
+        '        appStoreID: "1582183900",',
+        '        displayName: "Free Fire MAX"',
+        '    )',
+
+        '    public static func target(forBundleID id: String) -> GameTarget? {',
+        '        switch id {',
+        '        case "com.dts.freefireth":  return freeFire',
+        '        case "com.dts.freefiremax": return freeFireMax',
+        '        default: return nil',
+        '        }',
+        '    }',
+
+        '    /// Пробует открыть игру. Возвращает true если удалось.',
+        '    @MainActor',
+        '    @discardableResult',
+        '    public static func launch(_ target: GameTarget) async -> Bool {',
+        '        // Пробуем все схемы',
+        '        for s in target.schemes {',
+        '            if let url = URL(string: "\\(s)://"), UIApplication.shared.canOpenURL(url) {',
+        '                let ok = await UIApplication.shared.open(url)',
+        '                if ok { return true }',
+        '            }',
+        '        }',
+        '        // Fallback: App Store',
+        '        if let url = URL(string: "itms-apps://itunes.apple.com/app/id\\(target.appStoreID)") {',
+        '            let ok = await UIApplication.shared.open(url)',
+        '            return ok',
+        '        }',
+        '        return false',
+        '    }',
+
+        '    @MainActor',
+        '    @discardableResult',
+        '    public static func launchByBundleID(_ id: String) async -> Bool {',
+        '        guard let t = target(forBundleID: id) else { return false }',
+        '        return await launch(t)',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelGameLauncher.swift'), 'w') as f:
+        f.write(chr(10).join(launcher_swift_lines))
+    print('[setup] ✓ KernelGameLauncher.swift written')
+
+    # ── 2. BootScreen.swift ─────────────────────────────────
+    boot_lines = [
+        'import SwiftUI',
+        '',
+        '// KernelBootScreen — терминальная boot-анимация при старте.',
+        '// Показывается 2.5 сек, потом callback onFinished.',
+        'public struct KernelBootScreen: View {',
+        '    let onFinished: () -> Void',
+        '    @State private var lines: [String] = []',
+        '    @State private var showCursor: Bool = true',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+
+        '    private let script: [(String, Double)] = [',
+        '        ("> INITIALIZING KERNEL...", 0.2),',
+        '        ("> LOADING MODULES...    [████████░░] 80%", 0.3),',
+        '        ("> LOADING MODULES...    [██████████] OK", 0.2),',
+        '        ("> VERIFYING LICENSE...  [OK]", 0.3),',
+        '        ("> BYPASSING SIGNATURE.. [OK]", 0.3),',
+        '        ("> BOOTSTRAPPING NET...  [OK]", 0.3),',
+        '        ("> KERNEL v1.0 READY.", 0.6),',
+        '    ]',
+
+        '    public init(onFinished: @escaping () -> Void) {',
+        '        self.onFinished = onFinished',
+        '    }',
+
+        '    public var body: some View {',
+        '        ZStack {',
+        '            Color.black.ignoresSafeArea()',
+        '            KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.5)',
+        '            VStack(alignment: .leading, spacing: 8) {',
+        '                Spacer()',
+        '                HStack {',
+        '                    KernelHeroTitle("KERNEL", font: .system(size: 36, weight: .black, design: .monospaced))',
+        '                    Spacer()',
+        '                }',
+        '                .padding(.bottom, 20)',
+        '                ForEach(lines.indices, id: \\.self) { i in',
+        '                    Text(lines[i])',
+        '                        .font(.system(size: 12, weight: .semibold, design: .monospaced))',
+        '                        .foregroundStyle(theme.glow)',
+        '                        .transition(.opacity)',
+        '                }',
+        '                if showCursor && lines.count < script.count {',
+        '                    Text("> _")',
+        '                        .font(.system(size: 12, weight: .heavy, design: .monospaced))',
+        '                        .foregroundStyle(theme.accent)',
+        '                }',
+        '                Spacer()',
+        '            }',
+        '            .padding(.horizontal, 24)',
+        '        }',
+        '        .task { await runScript() }',
+        '    }',
+
+        '    private func runScript() async {',
+        '        for (msg, delay) in script {',
+        '            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))',
+        '            await MainActor.run {',
+        '                withAnimation(.easeIn(duration: 0.15)) {',
+        '                    lines.append(msg)',
+        '                }',
+        '                UIImpactFeedbackGenerator(style: .light).impactOccurred()',
+        '            }',
+        '        }',
+        '        try? await Task.sleep(nanoseconds: 400_000_000)',
+        '        await MainActor.run { onFinished() }',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelBootScreen.swift'), 'w') as f:
+        f.write(chr(10).join(boot_lines))
+    print('[setup] ✓ KernelBootScreen.swift written')
+
+    # ── 3. Патч KernelInjectView: auto-launch после done ─────
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if os.path.exists(iview):
+        with open(iview, 'r') as f:
+            code = f.read()
+        if 'KernelGameLauncher.launchByBundleID' not in code:
+            old = ('_ = try DevicePatchService.apply(project: patched)' + chr(10) +
+                   '            phase     = .done' + chr(10) +
+                   '            resultMsg = "Injected \\(instance.label) into \\(targetName)"')
+            new = ('_ = try DevicePatchService.apply(project: patched)' + chr(10) +
+                   '            phase     = .done' + chr(10) +
+                   '            resultMsg = "Injected \\(instance.label) into \\(targetName). Launching..."' + chr(10) +
+                   '            // KERNEL: auto-launch game after successful inject' + chr(10) +
+                   '            if UserDefaults.standard.object(forKey: "kernel.auto_launch") as? Bool ?? true {' + chr(10) +
+                   '                Task { @MainActor in' + chr(10) +
+                   '                    try? await Task.sleep(nanoseconds: 800_000_000)' + chr(10) +
+                   '                    await KernelGameLauncher.launchByBundleID(targetBundleID)' + chr(10) +
+                   '                }' + chr(10) +
+                   '            }')
+            if old in code:
+                code = code.replace(old, new)
+                print('[setup] ✓ Auto-launch после inject')
+        with open(iview, 'w') as f:
+            f.write(code)
+
+    # ── 4. Info.plist — добавить LSApplicationQueriesSchemes ─
+    plist = os.path.join(ROOT, 'Info.plist')
+    if os.path.exists(plist):
+        with open(plist, 'r') as f:
+            code = f.read()
+        if 'LSApplicationQueriesSchemes' not in code:
+            insert = ('\t<key>LSApplicationQueriesSchemes</key>' + chr(10) +
+                      '\t<array>' + chr(10) +
+                      '\t\t<string>freefire</string>' + chr(10) +
+                      '\t\t<string>freefireth</string>' + chr(10) +
+                      '\t\t<string>freefiremax</string>' + chr(10) +
+                      '\t\t<string>garenaff</string>' + chr(10) +
+                      '\t\t<string>garenaffmax</string>' + chr(10) +
+                      '\t\t<string>com.dts.freefireth</string>' + chr(10) +
+                      '\t\t<string>com.dts.freefiremax</string>' + chr(10) +
+                      '\t\t<string>itms-apps</string>' + chr(10) +
+                      '\t</array>' + chr(10))
+            marker = '\t<key>UTExportedTypeDeclarations</key>'
+            if marker in code:
+                code = code.replace(marker, insert + marker)
+                with open(plist, 'w') as f:
+                    f.write(code)
+                print('[setup] ✓ Info.plist: LSApplicationQueriesSchemes added')
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -50920,6 +51118,7 @@ def write_files():
     _patch_hero_title()
     _patch_theme_switcher()
     _patch_theme_wire()
+    _patch_launcher_and_boot()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
