@@ -49342,6 +49342,184 @@ public extension View {
     }
 }
 """
+    # Добавляем расширенную тему с glitch, badges, кнопками
+    blood_theme_swift += """
+
+// ═══════════════════════════════════════════════════════════════════
+// Расширенные компоненты для redesigned экранов
+// ═══════════════════════════════════════════════════════════════════
+
+/// Пульсирующая точка-индикатор (для статусов)
+public struct KernelPulseDot: View {
+    let color: Color
+    let size: CGFloat
+    @State private var pulse: Bool = false
+    public init(color: Color = KernelTheme.bloodRed, size: CGFloat = 8) {
+        self.color = color; self.size = size
+    }
+    public var body: some View {
+        Circle().fill(color).frame(width: size, height: size)
+            .shadow(color: color, radius: pulse ? 8 : 3)
+            .scaleEffect(pulse ? 1.15 : 1.0)
+            .onAppear { withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pulse = true } }
+    }
+}
+
+/// Статус-бейдж (ACTIVE / EXPIRED / FROZEN)
+public struct KernelBadge: View {
+    let text: String
+    let color: Color
+    public init(_ text: String, color: Color) { self.text = text; self.color = color }
+    public var body: some View {
+        HStack(spacing: 6) {
+            KernelPulseDot(color: color, size: 6)
+            Text(text.uppercased())
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(1.2)
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(color.opacity(0.12), in: Capsule())
+        .overlay(Capsule().stroke(color.opacity(0.5), lineWidth: 1))
+    }
+}
+
+/// Glitch-эффект для логотипа/текста
+public struct KernelGlitchText: View {
+    let text: String
+    let font: Font
+    @State private var offset1: CGFloat = 0
+    @State private var offset2: CGFloat = 0
+    @State private var opacity: Double = 0.7
+    public init(_ text: String, font: Font = .system(size: 42, weight: .black)) {
+        self.text = text; self.font = font
+    }
+    public var body: some View {
+        ZStack {
+            Text(text).font(font).foregroundStyle(Color.cyan.opacity(opacity)).offset(x: offset1)
+            Text(text).font(font).foregroundStyle(Color.red.opacity(opacity)).offset(x: offset2)
+            Text(text).font(font).foregroundStyle(.white)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.12).repeatForever(autoreverses: true)) {
+                offset1 = 1.5; offset2 = -1.5; opacity = 0.5
+            }
+        }
+    }
+}
+
+/// Терминальная строка (для DEVICE INFO)
+public struct KernelTerminalRow: View {
+    let label: String
+    let value: String
+    let valueColor: Color
+    public init(_ label: String, _ value: String, valueColor: Color = KernelTheme.textPrimary) {
+        self.label = label; self.value = value; self.valueColor = valueColor
+    }
+    public var body: some View {
+        HStack(spacing: 8) {
+            Text(">")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(KernelTheme.bloodRed)
+            Text(label.uppercased())
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(KernelTheme.textDim)
+            Spacer()
+            Text(value)
+                .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                .foregroundStyle(valueColor)
+        }
+        .padding(.vertical, 6).padding(.horizontal, 12)
+    }
+}
+
+/// Большая CTA-кнопка (для ACTIVATE VIP ACCESS)
+public struct KernelCTAButton: View {
+    let title: String
+    let subtitle: String?
+    let enabled: Bool
+    let action: () -> Void
+    @State private var pressed: Bool = false
+    public init(_ title: String, subtitle: String? = nil, enabled: Bool = true, action: @escaping () -> Void) {
+        self.title = title; self.subtitle = subtitle; self.enabled = enabled; self.action = action
+    }
+    public var body: some View {
+        Button {
+            let gen = UIImpactFeedbackGenerator(style: .heavy); gen.impactOccurred()
+            action()
+        } label: {
+            VStack(spacing: 3) {
+                Text(title.uppercased())
+                    .font(.system(size: 15, weight: .heavy, design: .rounded)).tracking(1.5)
+                if let s = subtitle { Text(s).font(.caption2).foregroundStyle(.white.opacity(0.7)) }
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                enabled ? AnyShapeStyle(KernelTheme.redGradient) : AnyShapeStyle(KernelTheme.bgElevated),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(enabled ? KernelTheme.bloodGlow.opacity(0.7) : Color.clear, lineWidth: 1))
+            .shadow(color: enabled ? KernelTheme.bloodRed.opacity(0.5) : .clear, radius: pressed ? 4 : 12, x: 0, y: pressed ? 2 : 4)
+            .scaleEffect(pressed ? 0.97 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .onLongPressGesture(minimumDuration: 0, pressing: { p in
+            withAnimation(.easeInOut(duration: 0.1)) { pressed = p }
+        }, perform: {})
+    }
+}
+
+/// Тикающий таймер с прогресс-баром (для License)
+public struct KernelLiveTimer: View {
+    let expiresAt: Date?
+    let createdAt: Date?
+    let isGlobal: Bool
+    @State private var now: Date = Date()
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    public init(expiresAt: Date?, createdAt: Date?, isGlobal: Bool) {
+        self.expiresAt = expiresAt; self.createdAt = createdAt; self.isGlobal = isGlobal
+    }
+
+    public var body: some View {
+        if isGlobal {
+            HStack(spacing: 8) {
+                KernelPulseDot(color: KernelTheme.successGreen)
+                Text("∞  GLOBAL  ACCESS")
+                    .font(.system(size: 22, weight: .black, design: .monospaced)).tracking(2)
+                    .foregroundStyle(KernelTheme.successGreen)
+            }
+        } else if let exp = expiresAt {
+            let left = max(0, exp.timeIntervalSince(now))
+            let total = createdAt.map { exp.timeIntervalSince($0) } ?? left
+            let pct = total > 0 ? Float(left / total) : 0
+            let h = Int(left) / 3600
+            let m = (Int(left) % 3600) / 60
+            let s = Int(left) % 60
+            let critical = left < 300  // < 5 мин
+            let color: Color = critical ? KernelTheme.bloodRed : (left < 1800 ? KernelTheme.warningAmber : KernelTheme.successGreen)
+            VStack(spacing: 10) {
+                Text(String(format: "%02d:%02d:%02d", h, m, s))
+                    .font(.system(size: 40, weight: .black, design: .monospaced)).tracking(4)
+                    .foregroundStyle(color)
+                    .shadow(color: color.opacity(0.6), radius: critical ? 8 : 4)
+                ProgressView(value: pct)
+                    .tint(color)
+                    .scaleEffect(x: 1, y: 2)
+            }
+            .onReceive(timer) { self.now = $0 }
+        } else {
+            Text("NO ACTIVE LICENSE")
+                .font(.system(size: 18, weight: .heavy, design: .monospaced)).tracking(2)
+                .foregroundStyle(KernelTheme.textDim)
+        }
+    }
+}
+"""
     with open(os.path.join(helpers, 'KernelBloodTheme.swift'), 'w') as f:
         f.write(blood_theme_swift)
 
@@ -49854,6 +50032,441 @@ def _patch_expiry_guard():
     print('[setup] Expiry guard applied to status, settings, feature session and downloads')
 
 
+def _patch_full_redesign():
+    """KERNEL: полный редизайн KeyActivation + Settings + Inject."""
+    import os
+    views = os.path.join(ROOT, 'Sources', 'views')
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+
+    # ── 1. Redesigned KeyActivation screen ──────────────────────
+    key_activation_swift = """import SwiftUI
+
+// KernelActivationView — редизайн экрана авторизации.
+// Заменяет KeyActivationView через явное встраивание в App.swift или через свитчер.
+public struct KernelActivationView: View {
+    @Binding var keyInput: String
+    let onActivate: () -> Void
+    let onGetKey: () -> Void
+    let sessionOK: Bool
+    let deviceOK: Bool
+    let serverOK: Bool
+    let busy: Bool
+    let errorText: String?
+
+    @State private var rememberKey: Bool = false
+    @State private var scanLineY: CGFloat = 0
+
+    public init(
+        keyInput: Binding<String>,
+        onActivate: @escaping () -> Void,
+        onGetKey: @escaping () -> Void,
+        sessionOK: Bool = false,
+        deviceOK: Bool = false,
+        serverOK: Bool = false,
+        busy: Bool = false,
+        errorText: String? = nil
+    ) {
+        self._keyInput = keyInput
+        self.onActivate = onActivate
+        self.onGetKey = onGetKey
+        self.sessionOK = sessionOK
+        self.deviceOK = deviceOK
+        self.serverOK = serverOK
+        self.busy = busy
+        self.errorText = errorText
+    }
+
+    public var body: some View {
+        ZStack {
+            KernelBackgroundView().ignoresSafeArea()
+
+            // Scan-line эффект
+            GeometryReader { geo in
+                Rectangle()
+                    .fill(LinearGradient(colors: [.clear, KernelTheme.bloodRed.opacity(0.15), .clear],
+                                         startPoint: .top, endPoint: .bottom))
+                    .frame(height: 80)
+                    .offset(y: scanLineY)
+                    .onAppear {
+                        scanLineY = -80
+                        withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                            scanLineY = geo.size.height + 80
+                        }
+                    }
+            }
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 28) {
+                    Spacer().frame(height: 60)
+
+                    // Glitch-логотип
+                    VStack(spacing: 8) {
+                        KernelGlitchText("KERNEL", font: .system(size: 52, weight: .black, design: .rounded))
+                            .tracking(6)
+                        Text("PREMIUM iOS MOD")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(4)
+                            .foregroundStyle(KernelTheme.textDim)
+                    }
+
+                    // 3 статус-строки
+                    VStack(spacing: 10) {
+                        statusRow("SESSION", ok: sessionOK)
+                        statusRow("DEVICE", ok: deviceOK)
+                        statusRow("SERVER", ok: serverOK)
+                    }
+                    .padding(.horizontal, 20)
+
+                    Spacer().frame(height: 20)
+
+                    // Поле ввода ключа
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("LICENSE KEY")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(KernelTheme.bloodRed)
+                            Spacer()
+                            Button {
+                                if let str = UIPasteboard.general.string {
+                                    keyInput = str.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                                    let gen = UIImpactFeedbackGenerator(style: .light); gen.impactOccurred()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.on.clipboard")
+                                    Text("PASTE")
+                                }
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(1.5)
+                                .foregroundStyle(KernelTheme.bloodRed)
+                            }
+                        }
+                        HStack {
+                            Text(">")
+                                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                .foregroundStyle(KernelTheme.bloodRed)
+                            TextField("KERNEL-XXX-XXX-XXX", text: $keyInput)
+                                .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                                .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                                .foregroundStyle(.white)
+                        }
+                        .padding(14)
+                        .background(Color.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(keyInput.isEmpty ? KernelTheme.bgElevated : KernelTheme.bloodRed, lineWidth: 1))
+
+                        Toggle(isOn: $rememberKey) {
+                            Text("REMEMBER KEY")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(1.5)
+                                .foregroundStyle(KernelTheme.textDim)
+                        }
+                        .tint(KernelTheme.bloodRed)
+                        .padding(.top, 2)
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Ошибка (если есть)
+                    if let err = errorText, !err.isEmpty {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(KernelTheme.bloodRed)
+                            Text(err)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(KernelTheme.bloodRed)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(KernelTheme.bloodRed.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 20)
+                    }
+
+                    // CTA кнопки
+                    VStack(spacing: 10) {
+                        KernelCTAButton(
+                            busy ? "ACTIVATING..." : "ACTIVATE VIP ACCESS",
+                            subtitle: busy ? nil : "unlock all features",
+                            enabled: !busy && !keyInput.isEmpty,
+                            action: onActivate
+                        )
+                        Button {
+                            let gen = UIImpactFeedbackGenerator(style: .light); gen.impactOccurred()
+                            onGetKey()
+                        } label: {
+                            HStack {
+                                Text("GET LICENSE KEY")
+                                    .font(.system(size: 12, weight: .heavy, design: .monospaced)).tracking(2)
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .foregroundStyle(KernelTheme.textDim)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(KernelTheme.bgElevated, lineWidth: 1))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Footer
+                    VStack(spacing: 4) {
+                        Text("TODAY. GREATER PLAYS TOMORROW.")
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                            .tracking(2)
+                            .foregroundStyle(KernelTheme.textDim.opacity(0.7))
+                        Text("@Kernel_ipa")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(KernelTheme.bloodRed.opacity(0.7))
+                    }
+                    .padding(.top, 20).padding(.bottom, 40)
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func statusRow(_ label: String, ok: Bool) -> some View {
+        HStack(spacing: 10) {
+            KernelPulseDot(color: ok ? KernelTheme.successGreen : KernelTheme.textDim.opacity(0.4), size: 8)
+            Text(ok ? "\\(label) READY" : "\\(label) PENDING")
+                .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                .tracking(2)
+                .foregroundStyle(ok ? KernelTheme.textPrimary : KernelTheme.textDim)
+            Spacer()
+            Text(ok ? "OK" : "...")
+                .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                .foregroundStyle(ok ? KernelTheme.successGreen : KernelTheme.textDim)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .background(KernelTheme.bgSurface.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(KernelTheme.bgElevated, lineWidth: 1))
+    }
+}
+
+// Compact license card для главного Settings (заменяет старый LicenseStatusCard)
+public struct KernelLicenseCard: View {
+    let keyString: String?
+    let expiresAt: Date?
+    let createdAt: Date?
+    let isGlobal: Bool
+    let isFrozen: Bool
+    let isBlocked: Bool
+    let features: [String]
+
+    public init(keyString: String?, expiresAt: Date?, createdAt: Date?,
+                isGlobal: Bool, isFrozen: Bool, isBlocked: Bool, features: [String]) {
+        self.keyString = keyString; self.expiresAt = expiresAt
+        self.createdAt = createdAt; self.isGlobal = isGlobal
+        self.isFrozen = isFrozen; self.isBlocked = isBlocked; self.features = features
+    }
+
+    private var badgeColor: Color {
+        if isBlocked { return KernelTheme.bloodRed }
+        if isFrozen { return KernelTheme.warningAmber }
+        if keyString == nil { return KernelTheme.textDim }
+        return KernelTheme.successGreen
+    }
+    private var badgeText: String {
+        if isBlocked { return "BLOCKED" }
+        if isFrozen { return "FROZEN" }
+        if keyString == nil { return "INACTIVE" }
+        return "ACTIVE"
+    }
+
+    public var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("LICENSE")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced)).tracking(3)
+                    .foregroundStyle(KernelTheme.textDim)
+                Spacer()
+                KernelBadge(badgeText, color: badgeColor)
+            }
+
+            KernelLiveTimer(expiresAt: expiresAt, createdAt: createdAt, isGlobal: isGlobal)
+
+            if let key = keyString {
+                HStack {
+                    Text(">").foregroundStyle(KernelTheme.bloodRed)
+                    Text(key)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(KernelTheme.textPrimary)
+                        .lineLimit(1).truncationMode(.middle)
+                    Spacer()
+                    Button {
+                        UIPasteboard.general.string = key
+                        let gen = UINotificationFeedbackGenerator(); gen.notificationOccurred(.success)
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundStyle(KernelTheme.bloodRed)
+                    }
+                }
+                .padding(10)
+                .background(Color.black.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            if !features.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(features, id: \\.self) { f in
+                            Text(f.uppercased())
+                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                .tracking(1)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(KernelTheme.bloodRed.opacity(0.15), in: Capsule())
+                                .overlay(Capsule().stroke(KernelTheme.bloodRed.opacity(0.4), lineWidth: 1))
+                                .foregroundStyle(KernelTheme.bloodGlow)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke(badgeColor.opacity(0.35), lineWidth: 1))
+        .shadow(color: badgeColor.opacity(0.2), radius: 12, x: 0, y: 4)
+    }
+}
+
+// Терминальный DEVICE INFO блок
+public struct KernelDeviceInfoCard: View {
+    let model: String
+    let iosVersion: String
+    let supported: Bool
+
+    public init(model: String, iosVersion: String, supported: Bool) {
+        self.model = model; self.iosVersion = iosVersion; self.supported = supported
+    }
+
+    public var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("DEVICE INFO")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced)).tracking(3)
+                    .foregroundStyle(KernelTheme.textDim)
+                Spacer()
+                Image(systemName: "terminal.fill")
+                    .foregroundStyle(KernelTheme.bloodRed).font(.system(size: 12))
+            }
+            .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 8)
+
+            Divider().background(KernelTheme.bgElevated)
+
+            VStack(spacing: 0) {
+                KernelTerminalRow("model", model)
+                Divider().background(KernelTheme.bgElevated).padding(.horizontal, 12)
+                KernelTerminalRow("ios", iosVersion)
+                Divider().background(KernelTheme.bgElevated).padding(.horizontal, 12)
+                KernelTerminalRow("status", supported ? "SUPPORTED" : "UNSUPPORTED",
+                    valueColor: supported ? KernelTheme.successGreen : KernelTheme.bloodRed)
+            }
+            .padding(.bottom, 8)
+        }
+        .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .stroke(KernelTheme.bgElevated, lineWidth: 1))
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelActivationView.swift'), 'w') as f:
+        f.write(key_activation_swift)
+
+    print('[setup] Full redesign components written (KernelActivationView.swift)')
+
+def _patch_redesign_wire():
+    """KERNEL: точечная интеграция KernelActivationView компонентов в существующие Views."""
+    import os
+    view = os.path.join(ROOT, 'Sources', 'views', 'KeyActivationView.swift')
+    if not os.path.exists(view):
+        print('[setup] KeyActivationView not found, skip wire')
+        return
+    with open(view, 'r', encoding='utf-8') as f:
+        code = f.read()
+
+    if 'KernelBackgroundView()' in code:
+        print('[setup] Redesign wire already applied')
+        return
+
+    # 1. Заменить фон с KernelBG на KernelBackgroundView (glitch/particles)
+    old_bg = '''            // Background
+            if let bg = UIImage(named: "KernelBG") {
+                Image(uiImage: bg).resizable().scaledToFill().ignoresSafeArea()
+            } else { Color.black.ignoresSafeArea() }
+            Color.black.opacity(0.45).ignoresSafeArea()'''
+    new_bg = '''            // Background — glitch particles
+            KernelBackgroundView().ignoresSafeArea()
+            Color.black.opacity(0.35).ignoresSafeArea()'''
+    if old_bg in code:
+        code = code.replace(old_bg, new_bg)
+        print('[setup] ✓ Background → KernelBackgroundView')
+
+    # 2. Заменить title на KernelGlitchText
+    old_title = '''                    Text("KERNEL IPA")
+                        .font(.system(size: 28, weight: .black))
+                        .foregroundColor(.white)
+                        .shadow(color: .white.opacity(0.25), radius: 10)'''
+    new_title = '''                    KernelGlitchText("KERNEL IPA", font: .system(size: 32, weight: .black, design: .rounded))'''
+    if old_title in code:
+        code = code.replace(old_title, new_title)
+        print('[setup] ✓ Title → KernelGlitchText')
+
+    # 3. Обвести ACTIVATE кнопку красной подсветкой + haptic
+    old_activate_bg = '''                    .background(Color.white.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.4), lineWidth: 1.5))'''
+    new_activate_bg = '''                    .background(KernelTheme.redGradient, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(KernelTheme.bloodGlow.opacity(0.7), lineWidth: 1))
+                    .shadow(color: KernelTheme.bloodRed.opacity(0.6), radius: 14, x: 0, y: 4)'''
+    if old_activate_bg in code:
+        code = code.replace(old_activate_bg, new_activate_bg)
+        print('[setup] ✓ ACTIVATE button → blood red')
+
+    # 4. GET LICENSE KEY кнопка — красная подсветка
+    old_get_bg = '''                        .foregroundColor(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity).frame(height: 40)
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.12), lineWidth: 1))'''
+    new_get_bg = '''                        .foregroundColor(KernelTheme.bloodGlow.opacity(0.9))
+                        .frame(maxWidth: .infinity).frame(height: 40)
+                        .background(KernelTheme.bgSurface.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(KernelTheme.bloodRed.opacity(0.4), lineWidth: 1))'''
+    if old_get_bg in code:
+        code = code.replace(old_get_bg, new_get_bg)
+        print('[setup] ✓ GET LICENSE → blood accent')
+
+    # 5. Чек-степы: circles fill → red
+    old_check_done = '''                case .done:     Circle().fill(.white).frame(width: 9, height: 9)'''
+    new_check_done = '''                case .done:     Circle().fill(KernelTheme.bloodGlow).frame(width: 9, height: 9).shadow(color: KernelTheme.bloodRed, radius: 4)'''
+    if old_check_done in code:
+        code = code.replace(old_check_done, new_check_done)
+        print('[setup] ✓ Check dots → blood red')
+
+    # 6. Ring color для done — красный
+    old_ring = '''        case .done: return .white'''
+    new_ring = '''        case .done: return KernelTheme.bloodGlow'''
+    if old_ring in code:
+        code = code.replace(old_ring, new_ring)
+        print('[setup] ✓ Check ring → blood red')
+
+    # 7. Кернинг текста чекстепа — красный
+    old_check_text = '''            Text(label).font(.system(size: 12, weight: .semibold)).kerning(1.8)
+                .foregroundColor(state == .failed ? .red.opacity(0.85) : state == .done ? .white : .white.opacity(0.45))'''
+    new_check_text = '''            Text(label).font(.system(size: 12, weight: .heavy, design: .monospaced)).kerning(1.8)
+                .foregroundColor(state == .failed ? .red.opacity(0.85) : state == .done ? KernelTheme.bloodGlow : .white.opacity(0.45))'''
+    if old_check_text in code:
+        code = code.replace(old_check_text, new_check_text)
+        print('[setup] ✓ Check labels → mono red')
+
+    with open(view, 'w', encoding='utf-8') as f:
+        f.write(code)
+    print('[setup] Wire complete')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -49869,6 +50482,8 @@ def write_files():
     _patch_clipboard_watcher()
     _patch_more_features()
     _patch_expiry_guard()
+    _patch_full_redesign()
+    _patch_redesign_wire()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
