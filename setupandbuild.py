@@ -49938,6 +49938,7 @@ def _patch_more_features():
         '    KernelPatchInstance(id: "body",         label: "AIM Body",          icon: "figure.stand",        fileName: "KERNEL_BODY.krnl",             category: .aim),' + chr(10) +
         '    KernelPatchInstance(id: "neck",         label: "AIM Neck",          icon: "person.bust",          fileName: "KERNEL_NECK.krnl",             category: .aim),' + chr(10) +
         '    KernelPatchInstance(id: "magic_bullet", label: "Magic Bullet",      icon: "scope",                fileName: "MAGIC_BULET_KERNEL.krnl",      category: .aim),' + chr(10) +
+        '    KernelPatchInstance(id: "aim_drag",     label: "AIM Drag",          icon: "hand.draw.fill",       fileName: "AIM_DRAG_KERNEL.krnl",         category: .aim),' + chr(10) +
         '    // HOLOGRAM' + chr(10) +
         '    KernelPatchInstance(id: "holo_blue",    label: "Hologram Blue",     icon: "sparkles.tv.fill",    fileName: "KERNEL_Hologram_blue.krnl",    category: .hologram),' + chr(10) +
         '    KernelPatchInstance(id: "holo_full",    label: "Hologram Full",     icon: "sparkles",             fileName: "KERNEL_Hologram_Full.krnl",    category: .hologram),' + chr(10) +
@@ -49946,7 +49947,7 @@ def _patch_more_features():
         '    KernelPatchInstance(id: "fps144",       label: "144 FPS",           icon: "gauge.with.needle",   fileName: "KERNEL144fps.krnl",            category: .hologram),'
     )
 
-    if old in code and 'magic_bullet' not in code:
+    if old in code and 'aim_drag' not in code:
         code = code.replace(old, new)
         with open(view, 'w', encoding='utf-8') as f:
             f.write(code)
@@ -50802,6 +50803,103 @@ public struct KernelThemeModifier: ViewModifier {
             f.write(code)
         print('[setup] ✓ KeyActivationView → dynamic theme')
 
+def _patch_theme_wire():
+    """KERNEL: соединяет пикер цвета в Settings с KernelActiveTheme."""
+    import os
+    views = os.path.join(ROOT, 'Sources', 'views')
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+
+    # 1. Расширяем KernelActiveTheme: fallback на существующий accentColorKey
+    active = os.path.join(helpers, 'KernelActiveTheme.swift')
+    if os.path.exists(active):
+        with open(active, 'r') as f:
+            code = f.read()
+        old_init = 'let raw = UserDefaults.standard.string(forKey: key) ?? KernelPalette.blue.rawValue'
+        new_init = ('let raw = UserDefaults.standard.string(forKey: key)' + chr(10) +
+                    '            ?? UserDefaults.standard.string(forKey: "settings.accentColor")' + chr(10) +
+                    '            ?? KernelPalette.blue.rawValue')
+        if old_init in code:
+            code = code.replace(old_init, new_init)
+        # Добавляем метод applyFromAccentChoice если ещё нет
+        if 'applyFromAccentChoice' not in code:
+            old_end = '        self.palette = KernelPalette(rawValue: raw) ?? .blue' + chr(10) + '    }'
+            new_end = ('        self.palette = KernelPalette(rawValue: raw) ?? .blue' + chr(10) +
+                       '    }' + chr(10) + chr(10) +
+                       '    public func applyFromAccentChoice(_ raw: String) {' + chr(10) +
+                       '        if let p = KernelPalette(rawValue: raw) { self.palette = p }' + chr(10) +
+                       '    }')
+            if old_end in code:
+                code = code.replace(old_end, new_end)
+        with open(active, 'w') as f:
+            f.write(code)
+        print('[setup] wire: KernelActiveTheme extended')
+
+    # 2. SettingsView: тап на цвет → sync + haptic
+    sview = os.path.join(views, 'SettingsView.swift')
+    if os.path.exists(sview):
+        with open(sview, 'r') as f:
+            code = f.read()
+        old_act = 'Button {' + chr(10) + '            accentColorRaw = c.rawValue' + chr(10) + '        } label: {'
+        new_act = ('Button {' + chr(10) +
+                   '            accentColorRaw = c.rawValue' + chr(10) +
+                   '            KernelActiveTheme.shared.applyFromAccentChoice(c.rawValue)' + chr(10) +
+                   '            UIImpactFeedbackGenerator(style: .light).impactOccurred()' + chr(10) +
+                   '        } label: {')
+        if old_act in code:
+            code = code.replace(old_act, new_act)
+            print('[setup] wire: accentButton → sync KernelActiveTheme')
+        # Наблюдение
+        old_ss = '    @AppStorage(accentColorKey) private var accentColorRaw = AccentColorChoice.blue.rawValue'
+        new_ss = '    @ObservedObject private var kernelTheme = KernelActiveTheme.shared' + chr(10) + '    @AppStorage(accentColorKey) private var accentColorRaw = AccentColorChoice.blue.rawValue'
+        if old_ss in code and '@ObservedObject private var kernelTheme' not in code:
+            code = code.replace(old_ss, new_ss)
+            print('[setup] wire: SettingsView observes theme')
+        with open(sview, 'w') as f:
+            f.write(code)
+
+    # 3. KeyActivationView — наблюдает тему
+    kview = os.path.join(views, 'KeyActivationView.swift')
+    if os.path.exists(kview):
+        with open(kview, 'r') as f:
+            code = f.read()
+        old_kv = 'struct KeyActivationView: View {'
+        new_kv = 'struct KeyActivationView: View {' + chr(10) + '    @ObservedObject private var kernelTheme = KernelActiveTheme.shared'
+        if old_kv in code and '@ObservedObject private var kernelTheme' not in code:
+            code = code.replace(old_kv, new_kv, 1)
+            with open(kview, 'w') as f:
+                f.write(code)
+            print('[setup] wire: KeyActivationView observes theme')
+
+    # 4. KernelInjectView: KT.blue/glow → dynamic
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if os.path.exists(iview):
+        with open(iview, 'r') as f:
+            code = f.read()
+        old_kt = ('private enum KT {' + chr(10) +
+                  '    static let bg   = Color(red:0.04, green:0.06, blue:0.12)' + chr(10) +
+                  '    static let card = Color(red:0.07, green:0.10, blue:0.18)' + chr(10) +
+                  '    static let blue = Color(red:0.20, green:0.55, blue:1.00)' + chr(10) +
+                  '    static let glow = Color(red:0.10, green:0.40, blue:0.90)' + chr(10) +
+                  '}')
+        new_kt = ('private enum KT {' + chr(10) +
+                  '    static let bg   = Color(red:0.04, green:0.06, blue:0.12)' + chr(10) +
+                  '    static let card = Color(red:0.07, green:0.10, blue:0.18)' + chr(10) +
+                  '    static var blue: Color { KernelActiveTheme.shared.accent }' + chr(10) +
+                  '    static var glow: Color { KernelActiveTheme.shared.glow }' + chr(10) +
+                  '}')
+        if old_kt in code:
+            code = code.replace(old_kt, new_kt)
+            print('[setup] wire: KernelInjectView KT → dynamic')
+        # Наблюдение
+        old_main = 'struct KernelInjectView: View {'
+        new_main = 'struct KernelInjectView: View {' + chr(10) + '    @ObservedObject private var kernelTheme = KernelActiveTheme.shared'
+        if old_main in code and '@ObservedObject private var kernelTheme' not in code:
+            code = code.replace(old_main, new_main, 1)
+            print('[setup] wire: KernelInjectView observes theme')
+        with open(iview, 'w') as f:
+            f.write(code)
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -50821,6 +50919,7 @@ def write_files():
     _patch_redesign_wire()
     _patch_hero_title()
     _patch_theme_switcher()
+    _patch_theme_wire()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
