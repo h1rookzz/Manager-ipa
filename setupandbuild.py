@@ -51331,29 +51331,40 @@ def _patch_feature_selector():
         code = code.replace(old_zstack_end, new_zstack_end)
         print('[setup] ✓ App.swift: Boot Screen + Feature Selector wired')
 
-    # Добавляем функцию checkFeatureSelection перед last }
-    old_last = 'class AppState: ObservableObject {'
-    new_func = ('    @MainActor' + chr(10) +
-               '    private func checkFeatureSelection(key: String) async {' + chr(10) +
-               '        guard !key.isEmpty else { return }' + chr(10) +
-               '        guard let url = URL(string: "https://ramp.kz/api/key/info?key=\\(key)") else { return }' + chr(10) +
-               '        do {' + chr(10) +
-               '            let (data, _) = try await URLSession.shared.data(from: url)' + chr(10) +
-               '            let info = try JSONDecoder().decode(KernelKeyInfoResponse.self, from: data)' + chr(10) +
-               '            if info.plan_type == "standard" && !info.is_locked {' + chr(10) +
-               '                pendingFeatureKey = key' + chr(10) +
-               '                pendingFeatureLimits = info.limits ?? KernelFeatureLimits()' + chr(10) +
-               '                withAnimation { showFeatureSelector = true }' + chr(10) +
-               '            }' + chr(10) +
-               '        } catch { }' + chr(10) +
-               '    }' + chr(10) + chr(10) +
-               '}' + chr(10) + chr(10) +
-               'class AppState: ObservableObject {')
-    # Убираем старое закрытие struct
-    old_struct_close = ('}' + chr(10) + chr(10) + 'class AppState: ObservableObject {')
-    if old_struct_close in code and 'checkFeatureSelection' not in code:
-        code = code.replace(old_struct_close, new_func, 1)
-        print('[setup] ✓ App.swift: checkFeatureSelection added')
+    # Добавляем checkFeatureSelection ВНУТРИ struct — перед закрывающей скобкой
+    # Ищем .onOpenURL блок — последний в struct body
+    old_onopen = ('.onOpenURL { url in' + chr(10) +
+                  '                patchDraftCoordinator.presentImport(url)' + chr(10) +
+                  '            }' + chr(10) +
+                  '        }' + chr(10) +
+                  '    }' + chr(10) +
+                  '}')
+    new_onopen = ('.onOpenURL { url in' + chr(10) +
+                  '                patchDraftCoordinator.presentImport(url)' + chr(10) +
+                  '            }' + chr(10) +
+                  '        }' + chr(10) +
+                  '    }' + chr(10) +
+                  '' + chr(10) +
+                  '    @MainActor' + chr(10) +
+                  '    private func checkFeatureSelection(key: String) async {' + chr(10) +
+                  '        guard !key.isEmpty else { return }' + chr(10) +
+                  '        guard let url = URL(string: "https://ramp.kz/api/key/info?key=\\(key)") else { return }' + chr(10) +
+                  '        do {' + chr(10) +
+                  '            let (data, _) = try await URLSession.shared.data(from: url)' + chr(10) +
+                  '            let info = try JSONDecoder().decode(KernelKeyInfoResponse.self, from: data)' + chr(10) +
+                  '            if info.plan_type == "standard" && !info.is_locked {' + chr(10) +
+                  '                pendingFeatureKey = key' + chr(10) +
+                  '                pendingFeatureLimits = info.limits ?? KernelFeatureLimits()' + chr(10) +
+                  '                withAnimation { showFeatureSelector = true }' + chr(10) +
+                  '            }' + chr(10) +
+                  '        } catch { }' + chr(10) +
+                  '    }' + chr(10) +
+                  '}')
+    if old_onopen in code and 'private func checkFeatureSelection' not in code:
+        code = code.replace(old_onopen, new_onopen, 1)
+        print('[setup] ✓ App.swift: checkFeatureSelection added inside struct')
+    elif 'private func checkFeatureSelection' in code:
+        print('[setup] checkFeatureSelection already present')
 
     with open(app_swift, 'w') as f:
         f.write(code)
