@@ -51098,6 +51098,267 @@ def _patch_launcher_and_boot():
                 print('[setup] ✓ Info.plist: LSApplicationQueriesSchemes added')
 
 
+def _patch_feature_selector():
+    """KERNEL: Boot Screen в App.swift + KernelFeatureSelector для Стандарт."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    views = os.path.join(ROOT, 'Sources', 'views')
+
+    # ── 1. KernelFeatureSelector.swift ─────────────────────
+    selector_lines = [
+        'import SwiftUI',
+        '',
+        '// KernelFeatureSelector — экран выбора фич для Стандарт-ключа.',
+        '// Показывается один раз после активации. Потом залочивается.',
+        '',
+        'struct KernelFeatureChoice: Codable {',
+        '    var aim: [String] = []',
+        '    var hologram: [String] = []',
+        '    var chams: [String] = []',
+        '    var skin: [String] = []',
+        '    var fps: Bool = true',
+        '}',
+        '',
+        'struct KernelFeatureLimits: Codable {',
+        '    var aim: Int = 2',
+        '    var hologram: Int = 2',
+        '    var chams: Int = 1',
+        '    var skin: Int = 1',
+        '    var fps: Bool = true',
+        '}',
+        '',
+        'struct KernelKeyInfoResponse: Codable {',
+        '    var ok: Bool',
+        '    var plan_type: String',
+        '    var limits: KernelFeatureLimits?',
+        '    var is_locked: Bool',
+        '    var chosen_features: KernelFeatureChoice?',
+        '}',
+        '',
+        'struct KernelFeatureSelector: View {',
+        '    let key: String',
+        '    let limits: KernelFeatureLimits',
+        '    let onDone: ([String]) -> Void',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    @State private var choice = KernelFeatureChoice()',
+        '    @State private var isSaving = false',
+        '    @State private var errorText: String? = nil',
+        '',
+        '    private let aimOptions = [',
+        '        ("body", "AIM Body", "figure.stand"),',
+        '        ("neck", "AIM Neck", "person.bust"),',
+        '        ("magic_bullet", "Magic Bullet", "scope"),',
+        '        ("aim_drag", "AIM Drag", "hand.draw.fill"),',
+        '    ]',
+        '    private let holoOptions = [',
+        '        ("holo_blue", "Hologram Blue", "sparkles.tv.fill"),',
+        '        ("holo_full", "Hologram Full", "sparkles"),',
+        '        ("holo_pink", "Hologram Pink", "heart.circle.fill"),',
+        '    ]',
+        '    private let chamsOptions = [("chams", "Chams", "eye.fill")]',
+        '    private let skinOptions = [',
+        '        ("skin_hack", "Skin Hack", "person.crop.square"),',
+        '        ("skin_alok", "Skin Alok", "person.crop.circle"),',
+        '        ("skin_dimitri", "Skin Dimitri", "person.crop.circle.badge.checkmark"),',
+        '    ]',
+        '',
+        '    var body: some View {',
+        '        ZStack {',
+        '            Color.black.ignoresSafeArea()',
+        '            KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.4)',
+        '            ScrollView {',
+        '                VStack(spacing: 20) {',
+        '                    VStack(spacing: 6) {',
+        '                        KernelHeroTitle("ВЫБЕРИ ФИЧИ", font: .system(size: 28, weight: .black, design: .rounded))',
+        '                            .padding(.top, 60)',
+        '                        Text("СТАНДАРТ — выбор фиксируется навсегда")',
+        '                            .font(.system(size: 11, weight: .semibold, design: .monospaced))',
+        '                            .foregroundStyle(theme.glow.opacity(0.8))',
+        '                    }',
+        '                    featureSection("🎯 AIM", options: aimOptions, selected: $choice.aim, limit: limits.aim)',
+        '                    featureSection("💎 HOLOGRAM", options: holoOptions, selected: $choice.hologram, limit: limits.hologram)',
+        '                    featureSection("👁 CHAMS", options: chamsOptions, selected: $choice.chams, limit: limits.chams)',
+        '                    featureSection("🎭 SKIN", options: skinOptions, selected: $choice.skin, limit: limits.skin)',
+        '                    HStack {',
+        '                        Text("⚡ 144 FPS")',
+        '                            .font(.system(size: 14, weight: .heavy, design: .monospaced))',
+        '                            .foregroundStyle(.white)',
+        '                        Spacer()',
+        '                        KernelBadge("ВКЛЮЧЕНО", color: theme.accent)',
+        '                    }',
+        '                    .padding(14)',
+        '                    .background(KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 12))',
+        '                    .padding(.horizontal)',
+        '                    if let err = errorText {',
+        '                        Text(err).foregroundStyle(.red).font(.caption).padding(.horizontal)',
+        '                    }',
+        '                    KernelCTAButton(isSaving ? "Сохраняем..." : "ЗАФИКСИРОВАТЬ ВЫБОР", enabled: !isSaving && isValid) {',
+        '                        Task { await saveChoice() }',
+        '                    }',
+        '                    .padding(.horizontal)',
+        '                    .padding(.bottom, 40)',
+        '                }',
+        '            }',
+        '        }',
+        '        .preferredColorScheme(.dark)',
+        '    }',
+        '',
+        '    private var isValid: Bool {',
+        '        !choice.aim.isEmpty',
+        '    }',
+        '',
+        '    @ViewBuilder',
+        '    private func featureSection(_ title: String, options: [(String, String, String)], selected: Binding<[String]>, limit: Int) -> some View {',
+        '        VStack(alignment: .leading, spacing: 10) {',
+        '            HStack {',
+        '                Text(title).font(.system(size: 13, weight: .heavy, design: .monospaced)).foregroundStyle(theme.accent)',
+        '                Spacer()',
+        '                Text("\\(selected.wrappedValue.count)/\\(limit)").font(.caption).foregroundStyle(KernelTheme.textDim)',
+        '            }',
+        '            ForEach(options, id: \\.0) { id, label, icon in',
+        '                let isSelected = selected.wrappedValue.contains(id)',
+        '                let canSelect = !isSelected && selected.wrappedValue.count >= limit',
+        '                Button {',
+        '                    if isSelected { selected.wrappedValue.removeAll { $0 == id } }',
+        '                    else if !canSelect { selected.wrappedValue.append(id); UIImpactFeedbackGenerator(style: .light).impactOccurred() }',
+        '                } label: {',
+        '                    HStack(spacing: 12) {',
+        '                        Image(systemName: icon).foregroundStyle(isSelected ? theme.accent : KernelTheme.textDim).frame(width: 24)',
+        '                        Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(isSelected ? .white : KernelTheme.textDim)',
+        '                        Spacer()',
+        '                        if isSelected { Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.accent) }',
+        '                        else if canSelect { Image(systemName: "lock.fill").foregroundStyle(KernelTheme.textDim.opacity(0.5)) }',
+        '                        else { Image(systemName: "circle").foregroundStyle(KernelTheme.textDim.opacity(0.4)) }',
+        '                    }',
+        '                    .padding(12)',
+        '                    .background(isSelected ? theme.accent.opacity(0.15) : KernelTheme.bgSurface, in: RoundedRectangle(cornerRadius: 10))',
+        '                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(isSelected ? theme.accent.opacity(0.6) : Color.clear, lineWidth: 1))',
+        '                }',
+        '                .buttonStyle(.plain)',
+        '                .disabled(canSelect)',
+        '            }',
+        '        }',
+        '        .padding(14)',
+        '        .background(KernelTheme.bgSurface.opacity(0.5), in: RoundedRectangle(cornerRadius: 14))',
+        '        .padding(.horizontal)',
+        '    }',
+        '',
+        '    private func saveChoice() async {',
+        '        isSaving = true',
+        '        defer { isSaving = false }',
+        '        guard var req = URL(string: "https://ramp.kz/api/key/features/choose").map({ URLRequest(url: $0) }) else { return }',
+        '        req.httpMethod = "POST"',
+        '        req.setValue("application/json", forHTTPHeaderField: "Content-Type")',
+        '        let body: [String: Any] = ["key": key, "choice": ["aim": choice.aim, "hologram": choice.hologram, "chams": choice.chams, "skin": choice.skin]]',
+        '        req.httpBody = try? JSONSerialization.data(withJSONObject: body)',
+        '        do {',
+        '            let (data, _) = try await URLSession.shared.data(for: req)',
+        '            if let resp = try? JSONDecoder().decode(KernelKeyInfoResponse.self, from: data), resp.ok {',
+        '                let allFeats = choice.aim + choice.hologram + choice.chams + choice.skin + (limits.fps ? ["fps144"] : [])',
+        '                onDone(allFeats)',
+        '            } else { errorText = "Ошибка сервера" }',
+        '        } catch { errorText = error.localizedDescription }',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelFeatureSelector.swift'), 'w') as f:
+        f.write(chr(10).join(selector_lines))
+    print('[setup] ✓ KernelFeatureSelector.swift written')
+
+    # ── 2. Патч App.swift: Boot Screen + Feature Selector ───
+    app_swift = os.path.join(ROOT, 'Sources', 'App.swift')
+    if not os.path.exists(app_swift):
+        print('[setup] App.swift not found, skip')
+        return
+    with open(app_swift, 'r') as f:
+        code = f.read()
+
+    if 'showBoot' in code:
+        print('[setup] App.swift already patched')
+        return
+
+    # Добавляем @State showBoot + showFeatureSelector
+    old_state = '    @State private var showOnboarding = OnboardingStore.shouldShow()'
+    new_state = ('    @State private var showBoot: Bool = true' + chr(10) +
+                 '    @State private var showFeatureSelector: Bool = false' + chr(10) +
+                 '    @State private var pendingFeatureKey: String = ""' + chr(10) +
+                 '    @State private var pendingFeatureLimits: KernelFeatureLimits = KernelFeatureLimits()' + chr(10) +
+                 '    @State private var showOnboarding = OnboardingStore.shouldShow()')
+    if old_state in code:
+        code = code.replace(old_state, new_state)
+        print('[setup] ✓ App.swift: showBoot state added')
+
+    # Добавляем boot screen + feature selector поверх ZStack
+    old_zstack_end = ('                if !isActivated {' + chr(10) +
+                      '                    KeyActivationView {' + chr(10) +
+                      '                        withAnimation(.spring(response: 0.38, dampingFraction: 0.84)) {' + chr(10) +
+                      '                            isActivated = true' + chr(10) +
+                      '                        }' + chr(10) +
+                      '                    }' + chr(10) +
+                      '                    .transition(.opacity)' + chr(10) +
+                      '                    .zIndex(2)' + chr(10) +
+                      '                }')
+    new_zstack_end = ('                if !isActivated {' + chr(10) +
+                      '                    KeyActivationView {' + chr(10) +
+                      '                        withAnimation(.spring(response: 0.38, dampingFraction: 0.84)) {' + chr(10) +
+                      '                            isActivated = true' + chr(10) +
+                      '                            // Check if standard plan needs feature selection' + chr(10) +
+                      '                            let key = KernelKeychain.load() ?? UserDefaults.standard.string(forKey: "app.savedKey") ?? ""' + chr(10) +
+                      '                            Task { await checkFeatureSelection(key: key) }' + chr(10) +
+                      '                        }' + chr(10) +
+                      '                    }' + chr(10) +
+                      '                    .transition(.opacity)' + chr(10) +
+                      '                    .zIndex(2)' + chr(10) +
+                      '                }' + chr(10) +
+                      '                // KERNEL: Boot Screen' + chr(10) +
+                      '                if showBoot {' + chr(10) +
+                      '                    KernelBootScreen {' + chr(10) +
+                      '                        withAnimation(.easeOut(duration: 0.5)) { showBoot = false }' + chr(10) +
+                      '                    }' + chr(10) +
+                      '                    .transition(.opacity)' + chr(10) +
+                      '                    .zIndex(10)' + chr(10) +
+                      '                }' + chr(10) +
+                      '                // KERNEL: Feature Selector для Стандарт' + chr(10) +
+                      '                if showFeatureSelector {' + chr(10) +
+                      '                    KernelFeatureSelector(key: pendingFeatureKey, limits: pendingFeatureLimits) { features in' + chr(10) +
+                      '                        KernelFeatureSession.shared.set(features: features)' + chr(10) +
+                      '                        withAnimation { showFeatureSelector = false }' + chr(10) +
+                      '                    }' + chr(10) +
+                      '                    .transition(.opacity.combined(with: .move(edge: .bottom)))' + chr(10) +
+                      '                    .zIndex(5)' + chr(10) +
+                      '                }')
+    if old_zstack_end in code:
+        code = code.replace(old_zstack_end, new_zstack_end)
+        print('[setup] ✓ App.swift: Boot Screen + Feature Selector wired')
+
+    # Добавляем функцию checkFeatureSelection перед last }
+    old_last = 'class AppState: ObservableObject {'
+    new_func = ('    @MainActor' + chr(10) +
+               '    private func checkFeatureSelection(key: String) async {' + chr(10) +
+               '        guard !key.isEmpty else { return }' + chr(10) +
+               '        guard let url = URL(string: "https://ramp.kz/api/key/info?key=\\(key)") else { return }' + chr(10) +
+               '        do {' + chr(10) +
+               '            let (data, _) = try await URLSession.shared.data(from: url)' + chr(10) +
+               '            let info = try JSONDecoder().decode(KernelKeyInfoResponse.self, from: data)' + chr(10) +
+               '            if info.plan_type == "standard" && !info.is_locked {' + chr(10) +
+               '                pendingFeatureKey = key' + chr(10) +
+               '                pendingFeatureLimits = info.limits ?? KernelFeatureLimits()' + chr(10) +
+               '                withAnimation { showFeatureSelector = true }' + chr(10) +
+               '            }' + chr(10) +
+               '        } catch { }' + chr(10) +
+               '    }' + chr(10) + chr(10) +
+               '}' + chr(10) + chr(10) +
+               'class AppState: ObservableObject {')
+    # Убираем старое закрытие struct
+    old_struct_close = ('}' + chr(10) + chr(10) + 'class AppState: ObservableObject {')
+    if old_struct_close in code and 'checkFeatureSelection' not in code:
+        code = code.replace(old_struct_close, new_func, 1)
+        print('[setup] ✓ App.swift: checkFeatureSelection added')
+
+    with open(app_swift, 'w') as f:
+        f.write(code)
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -51119,6 +51380,7 @@ def write_files():
     _patch_theme_switcher()
     _patch_theme_wire()
     _patch_launcher_and_boot()
+    _patch_feature_selector()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
