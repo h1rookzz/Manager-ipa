@@ -50636,6 +50636,172 @@ public struct KernelHeroTitle: View {
                 f.write(code)
             print('[setup] ✓ KernelInjectView → blood red palette')
 
+def _patch_theme_switcher():
+    """KERNEL: живой переключатель темы + новый UI для 3 экранов."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    views = os.path.join(ROOT, 'Sources', 'views')
+
+    # ── 1. KernelActiveTheme: живой переключатель + persistence ─────
+    active_theme_swift = """import SwiftUI
+import Combine
+
+// KernelActiveTheme — глобальная тема, которая пересчитывается на лету.
+// Синглтон, публикует изменения через @Published. Экран → тапнул на цвет → всё в приложении перекрашивается.
+
+public enum KernelPalette: String, CaseIterable {
+    case blue, red, yellow, black, purple, green
+
+    public var accent: Color {
+        switch self {
+        case .blue:   return Color(red: 0.20, green: 0.55, blue: 1.00)
+        case .red:    return Color(red: 0.87, green: 0.00, blue: 0.00)
+        case .yellow: return Color(red: 1.00, green: 0.80, blue: 0.10)
+        case .black:  return Color(white: 0.90)
+        case .purple: return Color(red: 0.60, green: 0.20, blue: 0.95)
+        case .green:  return Color(red: 0.20, green: 0.85, blue: 0.35)
+        }
+    }
+    public var glow: Color {
+        switch self {
+        case .blue:   return Color(red: 0.10, green: 0.40, blue: 0.90)
+        case .red:    return Color(red: 1.00, green: 0.15, blue: 0.15)
+        case .yellow: return Color(red: 1.00, green: 0.90, blue: 0.30)
+        case .black:  return Color(white: 1.0)
+        case .purple: return Color(red: 0.80, green: 0.40, blue: 1.00)
+        case .green:  return Color(red: 0.40, green: 1.00, blue: 0.55)
+        }
+    }
+    public var name: String {
+        switch self {
+        case .blue: return "Blue"; case .red: return "Red"
+        case .yellow: return "Yellow"; case .black: return "Ghost"
+        case .purple: return "Purple"; case .green: return "Toxic"
+        }
+    }
+    public var swatchColor: Color {
+        switch self {
+        case .black: return .white
+        default: return accent
+        }
+    }
+}
+
+public final class KernelActiveTheme: ObservableObject {
+    public static let shared = KernelActiveTheme()
+    private let key = "kernel.active_palette"
+
+    @Published public var palette: KernelPalette {
+        didSet { UserDefaults.standard.set(palette.rawValue, forKey: key) }
+    }
+
+    public var accent: Color { palette.accent }
+    public var glow: Color { palette.glow }
+
+    private init() {
+        let raw = UserDefaults.standard.string(forKey: key) ?? KernelPalette.blue.rawValue
+        self.palette = KernelPalette(rawValue: raw) ?? .blue
+    }
+}
+
+// Modifier для быстрого применения активной темы
+public extension View {
+    func kernelTheme() -> some View {
+        modifier(KernelThemeModifier())
+    }
+}
+
+public struct KernelThemeModifier: ViewModifier {
+    @ObservedObject var theme = KernelActiveTheme.shared
+    public func body(content: Content) -> some View {
+        content.tint(theme.accent)
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelActiveTheme.swift'), 'w') as f:
+        f.write(active_theme_swift)
+    print('[setup] ✓ KernelActiveTheme.swift written')
+
+    # ── 2. Возвращаю Blue как default: KernelInjectView KT → синий ───
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if os.path.exists(iview):
+        with open(iview, 'r', encoding='utf-8') as f:
+            code = f.read()
+        old_red = """    static let bg   = Color(red:0.04, green:0.04, blue:0.04)
+    static let card = Color(red:0.10, green:0.05, blue:0.05)
+    static let blue = Color(red:0.87, green:0.00, blue:0.00)
+    static let glow = Color(red:1.00, green:0.15, blue:0.15)"""
+        new_blue = """    static let bg   = Color(red:0.04, green:0.06, blue:0.12)
+    static let card = Color(red:0.07, green:0.10, blue:0.18)
+    static let blue = Color(red:0.20, green:0.55, blue:1.00)
+    static let glow = Color(red:0.10, green:0.40, blue:0.90)"""
+        if old_red in code:
+            code = code.replace(old_red, new_blue)
+            with open(iview, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] ✓ KernelInjectView → default blue restored')
+
+    # ── 3. Убираем blood red из SettingsView (возврат AppTheme.accent) ─
+    sview = os.path.join(views, 'SettingsView.swift')
+    if os.path.exists(sview):
+        with open(sview, 'r', encoding='utf-8') as f:
+            code = f.read()
+        # Логотип обратно на AppTheme.accent
+        code = code.replace(
+            '.shadow(color: Color(red: 0.87, green: 0.00, blue: 0.00).opacity(0.6), radius: 14)',
+            '.shadow(color: AppTheme.accent.opacity(0.4), radius: 10)')
+        # tint обратно на живую тему
+        code = code.replace(
+            '.tint(Color(red: 0.87, green: 0.00, blue: 0.00))',
+            '.tint(KernelActiveTheme.shared.accent)')
+        # foregroundStyle обратно
+        code = code.replace(
+            '.foregroundStyle(Color(red: 0.87, green: 0.00, blue: 0.00))',
+            '.foregroundStyle(KernelActiveTheme.shared.accent)')
+        # timer fallback обратно синий
+        code = code.replace(
+            'return Color(red: 1.00, green: 0.05, blue: 0.05)',
+            'return KernelActiveTheme.shared.accent')
+        with open(sview, 'w', encoding='utf-8') as f:
+            f.write(code)
+        print('[setup] ✓ SettingsView → dynamic KernelActiveTheme')
+
+    # ── 4. KeyActivation title обратно к красивому виду но с активной темой
+    kview = os.path.join(views, 'KeyActivationView.swift')
+    if os.path.exists(kview):
+        with open(kview, 'r', encoding='utf-8') as f:
+            code = f.read()
+        # ACTIVATE кнопка — использует активную тему
+        code = code.replace(
+            'KernelTheme.redGradient',
+            'LinearGradient(colors: [KernelActiveTheme.shared.accent, KernelActiveTheme.shared.glow], startPoint: .topLeading, endPoint: .bottomTrailing)')
+        code = code.replace(
+            'KernelTheme.bloodGlow.opacity(0.7)',
+            'KernelActiveTheme.shared.glow.opacity(0.7)')
+        code = code.replace(
+            'KernelTheme.bloodRed.opacity(0.6)',
+            'KernelActiveTheme.shared.accent.opacity(0.6)')
+        # GET LICENSE
+        code = code.replace(
+            'KernelTheme.bloodGlow.opacity(0.9)',
+            'KernelActiveTheme.shared.accent.opacity(0.9)')
+        code = code.replace(
+            'KernelTheme.bloodRed.opacity(0.4)',
+            'KernelActiveTheme.shared.accent.opacity(0.4)')
+        # Check dots
+        code = code.replace(
+            'Circle().fill(KernelTheme.bloodGlow).frame(width: 9, height: 9).shadow(color: KernelTheme.bloodRed, radius: 4)',
+            'Circle().fill(KernelActiveTheme.shared.glow).frame(width: 9, height: 9).shadow(color: KernelActiveTheme.shared.accent, radius: 4)')
+        code = code.replace(
+            'case .done: return KernelTheme.bloodGlow',
+            'case .done: return KernelActiveTheme.shared.glow')
+        code = code.replace(
+            'foregroundColor(state == .failed ? .red.opacity(0.85) : state == .done ? KernelTheme.bloodGlow : .white.opacity(0.45))',
+            'foregroundColor(state == .failed ? .red.opacity(0.85) : state == .done ? KernelActiveTheme.shared.glow : .white.opacity(0.45))')
+        with open(kview, 'w', encoding='utf-8') as f:
+            f.write(code)
+        print('[setup] ✓ KeyActivationView → dynamic theme')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -50654,6 +50820,7 @@ def write_files():
     _patch_full_redesign()
     _patch_redesign_wire()
     _patch_hero_title()
+    _patch_theme_switcher()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
