@@ -50467,6 +50467,175 @@ def _patch_redesign_wire():
         f.write(code)
     print('[setup] Wire complete')
 
+def _patch_hero_title():
+    """KERNEL: KernelHeroTitle (pulse + glitch + shimmer) + перекрас Settings и Inject."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    views = os.path.join(ROOT, 'Sources', 'views')
+
+    # ── 1. KernelHeroTitle: pulse + glitch + shimmer ─────────────
+    hero_swift = """import SwiftUI
+
+// KernelHeroTitle — крупный заголовок KERNEL с 3 эффектами:
+// 1) неоновый pulse (дышит glow'ом)
+// 2) glitch (цианово-красное смещение слоёв)
+// 3) shimmer (белый блик пробегает по буквам)
+
+public struct KernelHeroTitle: View {
+    let text: String
+    let font: Font
+    @State private var pulse: CGFloat = 0.6
+    @State private var glitch1: CGFloat = 0
+    @State private var glitch2: CGFloat = 0
+    @State private var shimmerX: CGFloat = -200
+
+    public init(_ text: String = "KERNEL", font: Font = .system(size: 56, weight: .black, design: .rounded)) {
+        self.text = text
+        self.font = font
+    }
+
+    public var body: some View {
+        ZStack {
+            // Layer 1: Cyan glitch shadow
+            Text(text)
+                .font(font)
+                .foregroundStyle(Color.cyan.opacity(0.55))
+                .offset(x: glitch1, y: 0)
+                .blur(radius: 0.5)
+
+            // Layer 2: Red glitch shadow
+            Text(text)
+                .font(font)
+                .foregroundStyle(Color(red: 1.0, green: 0.1, blue: 0.1).opacity(0.6))
+                .offset(x: glitch2, y: 0)
+                .blur(radius: 0.5)
+
+            // Layer 3: Main white text
+            Text(text)
+                .font(font)
+                .foregroundStyle(.white)
+                .shadow(color: Color(red: 1.0, green: 0.05, blue: 0.05).opacity(pulse), radius: 18)
+                .shadow(color: Color(red: 1.0, green: 0.05, blue: 0.05).opacity(pulse * 0.5), radius: 32)
+
+            // Layer 4: Shimmer overlay
+            Text(text)
+                .font(font)
+                .foregroundStyle(.white)
+                .mask(
+                    LinearGradient(
+                        colors: [.clear, .white.opacity(0.9), .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .frame(width: 90)
+                    .offset(x: shimmerX)
+                )
+                .allowsHitTesting(false)
+        }
+        .tracking(6)
+        .compositingGroup()
+        .onAppear {
+            // Neon pulse breathing
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                pulse = 1.0
+            }
+            // Glitch jitter (random)
+            Timer.scheduledTimer(withTimeInterval: 0.08, repeats: true) { _ in
+                let g1 = CGFloat.random(in: -2.5...2.5)
+                let g2 = CGFloat.random(in: -2.5...2.5)
+                withAnimation(.linear(duration: 0.05)) {
+                    glitch1 = g1
+                    glitch2 = g2
+                }
+            }
+            // Shimmer sweep
+            withAnimation(.linear(duration: 3.5).repeatForever(autoreverses: false).delay(0.5)) {
+                shimmerX = 400
+            }
+        }
+    }
+}
+"""
+    with open(os.path.join(helpers, 'KernelHeroTitle.swift'), 'w') as f:
+        f.write(hero_swift)
+    print('[setup] ✓ KernelHeroTitle.swift written')
+
+    # ── 2. Заменяем KernelGlitchText на KernelHeroTitle в KeyActivationView ─
+    view = os.path.join(views, 'KeyActivationView.swift')
+    if os.path.exists(view):
+        with open(view, 'r', encoding='utf-8') as f:
+            code = f.read()
+        old_glitch = 'KernelGlitchText("KERNEL IPA", font: .system(size: 32, weight: .black, design: .rounded))'
+        new_hero = 'KernelHeroTitle("KERNEL IPA", font: .system(size: 40, weight: .black, design: .rounded))'
+        if old_glitch in code:
+            code = code.replace(old_glitch, new_hero)
+            with open(view, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] ✓ KeyActivationView title → KernelHeroTitle')
+
+    # ── 3. SettingsView: перекраска в blood red ──────────────────
+    sview = os.path.join(views, 'SettingsView.swift')
+    if os.path.exists(sview):
+        with open(sview, 'r', encoding='utf-8') as f:
+            code = f.read()
+        changed = False
+
+        # Логотип: синий shadow → красный
+        old_logo_shadow = '.shadow(color: AppTheme.accent.opacity(0.3), radius: 8)'
+        new_logo_shadow = '.shadow(color: Color(red: 0.87, green: 0.00, blue: 0.00).opacity(0.6), radius: 14)'
+        if old_logo_shadow in code:
+            code = code.replace(old_logo_shadow, new_logo_shadow)
+            changed = True
+
+        # tint(AppTheme.accent) → красный
+        old_tint = '.tint(AppTheme.accent)'
+        new_tint = '.tint(Color(red: 0.87, green: 0.00, blue: 0.00))'
+        while old_tint in code:
+            code = code.replace(old_tint, new_tint, 1)
+            changed = True
+
+        # foregroundStyle(AppTheme.accent) в ссылках → красный
+        old_fg = '.foregroundStyle(AppTheme.accent)'
+        new_fg = '.foregroundStyle(Color(red: 0.87, green: 0.00, blue: 0.00))'
+        while old_fg in code:
+            code = code.replace(old_fg, new_fg, 1)
+            changed = True
+
+        # timerColor в KeyTimerSection: синий фолбэк → белый (blood look)
+        old_timer_default = 'return Color(red: 0.20, green: 0.55, blue: 1.0)'
+        new_timer_default = 'return Color(red: 1.00, green: 0.05, blue: 0.05)'
+        if old_timer_default in code:
+            code = code.replace(old_timer_default, new_timer_default)
+            changed = True
+
+        if changed:
+            with open(sview, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] ✓ SettingsView → blood red')
+
+    # ── 4. KernelInjectView: KT.blue → blood red ─────────────────
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if os.path.exists(iview):
+        with open(iview, 'r', encoding='utf-8') as f:
+            code = f.read()
+        changed = False
+
+        old_kt = """    static let bg   = Color(red:0.04, green:0.06, blue:0.12)
+    static let card = Color(red:0.07, green:0.10, blue:0.18)
+    static let blue = Color(red:0.20, green:0.55, blue:1.00)
+    static let glow = Color(red:0.10, green:0.40, blue:0.90)"""
+        new_kt = """    static let bg   = Color(red:0.04, green:0.04, blue:0.04)
+    static let card = Color(red:0.10, green:0.05, blue:0.05)
+    static let blue = Color(red:0.87, green:0.00, blue:0.00)
+    static let glow = Color(red:1.00, green:0.15, blue:0.15)"""
+        if old_kt in code:
+            code = code.replace(old_kt, new_kt)
+            changed = True
+
+        if changed:
+            with open(iview, 'w', encoding='utf-8') as f:
+                f.write(code)
+            print('[setup] ✓ KernelInjectView → blood red palette')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -50484,6 +50653,7 @@ def write_files():
     _patch_expiry_guard()
     _patch_full_redesign()
     _patch_redesign_wire()
+    _patch_hero_title()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
