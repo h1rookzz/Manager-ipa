@@ -51370,6 +51370,354 @@ def _patch_feature_selector():
         f.write(code)
 
 
+def _patch_premium_ui():
+    """KERNEL: премиум-редизайн — LiveFeed + GlassCard + PremiumSkinView."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    views = os.path.join(ROOT, 'Sources', 'views')
+    os.makedirs(helpers, exist_ok=True)
+
+    # ── 1. KernelGlassCard.swift ─────────────────────────────
+    glass_lines = [
+        'import SwiftUI',
+        '',
+        '// KernelGlassCard — glassmorphism карточка с blur + border glow.',
+        'public struct KernelGlassCard<Content: View>: View {',
+        '    let content: Content',
+        '    var glow: Color',
+        '    var cornerRadius: CGFloat',
+        '    public init(glow: Color = KernelActiveTheme.shared.accent, cornerRadius: CGFloat = 20, @ViewBuilder content: () -> Content) {',
+        '        self.glow = glow',
+        '        self.cornerRadius = cornerRadius',
+        '        self.content = content()',
+        '    }',
+        '    public var body: some View {',
+        '        content',
+        '            .padding(18)',
+        '            .background(',
+        '                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)',
+        '                    .fill(.ultraThinMaterial)',
+        '                    .overlay(',
+        '                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)',
+        '                            .fill(LinearGradient(colors: [glow.opacity(0.08), Color.clear], startPoint: .topLeading, endPoint: .bottomTrailing))',
+        '                    )',
+        '            )',
+        '            .overlay(',
+        '                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)',
+        '                    .stroke(LinearGradient(colors: [glow.opacity(0.5), glow.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)',
+        '            )',
+        '            .shadow(color: glow.opacity(0.2), radius: 20, x: 0, y: 8)',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelGlassCard.swift'), 'w') as f:
+        f.write(chr(10).join(glass_lines))
+    print('[setup] ✓ KernelGlassCard.swift')
+
+    # ── 2. KernelLiveFeed.swift — лента событий ──────────────
+    feed_lines = [
+        'import SwiftUI',
+        '',
+        '// KernelLiveFeed — псевдо-live лента активности других агентов.',
+        '// Генерирует правдоподобные события каждые 3-8 сек.',
+        'public struct KernelLiveEvent: Identifiable {',
+        '    public let id = UUID()',
+        '    public let icon: String',
+        '    public let text: String',
+        '    public let accent: Bool',
+        '}',
+        '',
+        '@MainActor',
+        'public final class KernelLiveFeedStore: ObservableObject {',
+        '    public static let shared = KernelLiveFeedStore()',
+        '    @Published public var events: [KernelLiveEvent] = []',
+        '    @Published public var onlineCount: Int = 892',
+        '    private var timer: Timer?',
+        '',
+        '    private let mods = ["AIM Body", "AIM Neck", "Magic Bullet", "AIM Drag", "Hologram Blue", "Hologram Full", "Hologram Pink", "Chams", "144 FPS", "Skin Alok", "Skin Hack", "Skin Dimitri"]',
+        '    private let regions = ["KZ", "RU", "BR", "ID", "TH", "PH", "IN", "MX", "VN", "US"]',
+        '    private let actions = ["injected", "activated", "deployed", "loaded", "synced"]',
+        '',
+        '    public func start() {',
+        '        guard timer == nil else { return }',
+        '        addEvent()',
+        '        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in',
+        '            Task { @MainActor in self?.addEvent() }',
+        '        }',
+        '    }',
+        '',
+        '    public func stop() { timer?.invalidate(); timer = nil }',
+        '',
+        '    private func addEvent() {',
+        '        let mod = mods.randomElement()!',
+        '        let region = regions.randomElement()!',
+        '        let action = actions.randomElement()!',
+        '        let agentId = String(format: "#%04X", Int.random(in: 0x1000...0xFFFF))',
+        '        let templates: [() -> KernelLiveEvent] = [',
+        '            { KernelLiveEvent(icon: "bolt.fill", text: "Agent \\(agentId) \\(action) \\(mod)", accent: false) },',
+        '            { KernelLiveEvent(icon: "crown.fill", text: "New user from \\(region) purchased VIP", accent: true) },',
+        '            { KernelLiveEvent(icon: "flame.fill", text: "\\(Int.random(in: 35...89)) injects in last minute", accent: false) },',
+        '            { KernelLiveEvent(icon: "person.3.fill", text: "Online: \\(Int.random(in: 850...950)) agents", accent: false) },',
+        '            { KernelLiveEvent(icon: "checkmark.shield.fill", text: "Agent \\(agentId) unlocked \\(mod)", accent: false) },',
+        '        ]',
+        '        let ev = templates.randomElement()!()',
+        '        withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {',
+        '            events.insert(ev, at: 0)',
+        '            if events.count > 20 { events = Array(events.prefix(20)) }',
+        '            onlineCount = Int.random(in: 850...950)',
+        '        }',
+        '    }',
+        '}',
+        '',
+        'public struct KernelLiveFeedView: View {',
+        '    @ObservedObject private var store = KernelLiveFeedStore.shared',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    public init() {}',
+        '    public var body: some View {',
+        '        KernelGlassCard(glow: theme.accent) {',
+        '            VStack(alignment: .leading, spacing: 12) {',
+        '                HStack {',
+        '                    HStack(spacing: 6) {',
+        '                        Circle().fill(Color.green).frame(width: 6, height: 6)',
+        '                            .shadow(color: .green, radius: 4)',
+        '                        Text("LIVE FEED")',
+        '                            .font(.system(size: 11, weight: .heavy, design: .monospaced))',
+        '                            .tracking(2)',
+        '                            .foregroundStyle(.white.opacity(0.9))',
+        '                    }',
+        '                    Spacer()',
+        '                    Text("\\(store.onlineCount) online")',
+        '                        .font(.system(size: 10, weight: .semibold, design: .monospaced))',
+        '                        .foregroundStyle(theme.accent)',
+        '                }',
+        '                VStack(alignment: .leading, spacing: 8) {',
+        '                    ForEach(store.events.prefix(4)) { ev in',
+        '                        HStack(spacing: 8) {',
+        '                            Image(systemName: ev.icon)',
+        '                                .foregroundStyle(ev.accent ? theme.glow : theme.accent.opacity(0.7))',
+        '                                .font(.system(size: 11))',
+        '                                .frame(width: 14)',
+        '                            Text(ev.text)',
+        '                                .font(.system(size: 11, weight: .medium, design: .monospaced))',
+        '                                .foregroundStyle(.white.opacity(0.75))',
+        '                                .lineLimit(1)',
+        '                            Spacer()',
+        '                        }',
+        '                        .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))',
+        '                    }',
+        '                }',
+        '            }',
+        '        }',
+        '        .onAppear { store.start() }',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelLiveFeed.swift'), 'w') as f:
+        f.write(chr(10).join(feed_lines))
+    print('[setup] ✓ KernelLiveFeed.swift')
+
+    # ── 3. KernelPremiumSkinView.swift — новый Mod Skin ──────
+    skinview_lines = [
+        'import SwiftUI',
+        '',
+        '// KernelPremiumSkinView — премиум-презентация 3 скинов',
+        '// Fullscreen swipe карусель с параллаксом.',
+        'public struct KernelPremiumSkinView: View {',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    @State private var selectedIndex: Int = 0',
+        '    @State private var applied: String? = nil',
+        '',
+        '    private struct SkinInfo {',
+        '        let id: String',
+        '        let displayName: String',
+        '        let subtitle: String',
+        '        let rarity: String',
+        '        let rarityColor: Color',
+        '    }',
+        '',
+        '    private let skins: [SkinInfo] = [',
+        '        SkinInfo(id: "skin_alok", displayName: "ALOK", subtitle: "DJ · HEALER", rarity: "MYTHIC", rarityColor: .purple),',
+        '        SkinInfo(id: "skin_hack", displayName: "SKIN HACK", subtitle: "UNIVERSAL", rarity: "LEGENDARY", rarityColor: .orange),',
+        '        SkinInfo(id: "skin_dimitri", displayName: "DIMITRI", subtitle: "COMBAT MEDIC", rarity: "MYTHIC", rarityColor: .purple),',
+        '    ]',
+        '',
+        '    public init() {}',
+        '',
+        '    public var body: some View {',
+        '        ZStack {',
+        '            Color.black.ignoresSafeArea()',
+        '            KernelBackgroundView(color: skins[selectedIndex].rarityColor).ignoresSafeArea().opacity(0.4)',
+        '            LinearGradient(colors: [skins[selectedIndex].rarityColor.opacity(0.35), .clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()',
+        '            VStack(spacing: 20) {',
+        '                HStack {',
+        '                    Text("MOD SKIN")',
+        '                        .font(.system(size: 12, weight: .heavy, design: .monospaced)).tracking(3)',
+        '                        .foregroundStyle(.white.opacity(0.7))',
+        '                    Spacer()',
+        '                    Text("\\(selectedIndex + 1) / \\(skins.count)")',
+        '                        .font(.system(size: 12, weight: .heavy, design: .monospaced))',
+        '                        .foregroundStyle(.white.opacity(0.6))',
+        '                }',
+        '                .padding(.horizontal, 24).padding(.top, 12)',
+        '',
+        '                TabView(selection: $selectedIndex) {',
+        '                    ForEach(skins.indices, id: \\.self) { i in',
+        '                        skinCard(skin: skins[i]).tag(i)',
+        '                    }',
+        '                }',
+        '                .tabViewStyle(.page(indexDisplayMode: .never))',
+        '                .frame(maxHeight: .infinity)',
+        '',
+        '                HStack(spacing: 8) {',
+        '                    ForEach(skins.indices, id: \\.self) { i in',
+        '                        Capsule()',
+        '                            .fill(i == selectedIndex ? theme.accent : Color.white.opacity(0.25))',
+        '                            .frame(width: i == selectedIndex ? 24 : 6, height: 6)',
+        '                            .animation(.spring(response: 0.4), value: selectedIndex)',
+        '                    }',
+        '                }',
+        '',
+        '                Button {',
+        '                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()',
+        '                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { applied = skins[selectedIndex].id }',
+        '                    KernelSkinsStore.shared.selectedSkinId = skins[selectedIndex].id',
+        '                    Task { try? await Task.sleep(nanoseconds: 1_500_000_000); await MainActor.run { applied = nil } }',
+        '                } label: {',
+        '                    HStack(spacing: 10) {',
+        '                        Image(systemName: applied == skins[selectedIndex].id ? "checkmark.circle.fill" : "bolt.fill")',
+        '                        Text(applied == skins[selectedIndex].id ? "APPLIED" : "APPLY SKIN")',
+        '                            .tracking(2)',
+        '                    }',
+        '                    .font(.system(size: 15, weight: .heavy, design: .rounded))',
+        '                    .foregroundStyle(.white)',
+        '                    .frame(maxWidth: .infinity)',
+        '                    .padding(.vertical, 16)',
+        '                    .background(',
+        '                        LinearGradient(colors: [theme.accent, theme.glow], startPoint: .topLeading, endPoint: .bottomTrailing),',
+        '                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)',
+        '                    )',
+        '                    .shadow(color: theme.accent.opacity(0.6), radius: 20, x: 0, y: 8)',
+        '                }',
+        '                .buttonStyle(.plain)',
+        '                .padding(.horizontal, 24)',
+        '                .padding(.bottom, 20)',
+        '            }',
+        '        }',
+        '        .preferredColorScheme(.dark)',
+        '    }',
+        '',
+        '    @ViewBuilder',
+        '    private func skinCard(skin: SkinInfo) -> some View {',
+        '        VStack(spacing: 16) {',
+        '            ZStack {',
+        '                RoundedRectangle(cornerRadius: 28, style: .continuous)',
+        '                    .fill(.ultraThinMaterial)',
+        '                    .overlay(',
+        '                        RoundedRectangle(cornerRadius: 28, style: .continuous)',
+        '                            .stroke(LinearGradient(colors: [skin.rarityColor.opacity(0.9), skin.rarityColor.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.5)',
+        '                    )',
+        '                    .shadow(color: skin.rarityColor.opacity(0.5), radius: 30, x: 0, y: 15)',
+        '',
+        '                AsyncImage(url: URL(string: "https://ramp.kz/api/skins/get/\\(skin.id)?public=1")) { phase in',
+        '                    switch phase {',
+        '                    case .success(let img):',
+        '                        img.resizable().scaledToFit().padding(20)',
+        '                    case .empty:',
+        '                        ProgressView().tint(skin.rarityColor)',
+        '                    case .failure:',
+        '                        Image(systemName: "person.fill.questionmark").font(.system(size: 80)).foregroundStyle(.white.opacity(0.3))',
+        '                    @unknown default: EmptyView()',
+        '                    }',
+        '                }',
+        '            }',
+        '            .padding(.horizontal, 20)',
+        '',
+        '            VStack(spacing: 6) {',
+        '                HStack(spacing: 8) {',
+        '                    Circle().fill(skin.rarityColor).frame(width: 8, height: 8).shadow(color: skin.rarityColor, radius: 6)',
+        '                    Text(skin.rarity)',
+        '                        .font(.system(size: 10, weight: .heavy, design: .monospaced))',
+        '                        .tracking(2)',
+        '                        .foregroundStyle(skin.rarityColor)',
+        '                }',
+        '                Text(skin.displayName)',
+        '                    .font(.system(size: 32, weight: .black, design: .rounded))',
+        '                    .tracking(4)',
+        '                    .foregroundStyle(.white)',
+        '                Text(skin.subtitle)',
+        '                    .font(.system(size: 11, weight: .semibold, design: .monospaced))',
+        '                    .tracking(2)',
+        '                    .foregroundStyle(.white.opacity(0.6))',
+        '            }',
+        '        }',
+        '    }',
+        '}',
+    ]
+    with open(os.path.join(helpers, 'KernelPremiumSkinView.swift'), 'w') as f:
+        f.write(chr(10).join(skinview_lines))
+    print('[setup] ✓ KernelPremiumSkinView.swift')
+
+    # ── 4. Заменить KernelModSkinView placeholder на новый вид ─
+    cview = os.path.join(ROOT, 'Sources', 'ContentView.swift')
+    if os.path.exists(cview):
+        with open(cview, 'r') as f:
+            code = f.read()
+        old_placeholder = ('struct KernelModSkinView: View {' + chr(10) +
+                           '    var body: some View {' + chr(10) +
+                           '        NavigationStack {' + chr(10) +
+                           '            VStack(spacing: 20) {' + chr(10) +
+                           '                Image(systemName: "paintbrush.pointed.fill")' + chr(10) +
+                           '                    .font(.system(size: 50, weight: .light))' + chr(10) +
+                           '                    .foregroundStyle(AppTheme.accent)' + chr(10) +
+                           '                Text("MOD SKIN")' + chr(10) +
+                           '                    .font(.system(size: 22, weight: .black))' + chr(10) +
+                           '                    .tracking(2)' + chr(10) +
+                           '                Text("Coming soon")' + chr(10) +
+                           '                    .font(.subheadline)' + chr(10) +
+                           '                    .foregroundStyle(.secondary)' + chr(10) +
+                           '            }' + chr(10) +
+                           '            .frame(maxWidth: .infinity, maxHeight: .infinity)' + chr(10) +
+                           '            .navigationTitle("Mod Skin")' + chr(10) +
+                           '            .navigationBarTitleDisplayMode(.inline)' + chr(10) +
+                           '        }' + chr(10) +
+                           '    }' + chr(10) +
+                           '}')
+        new_view = ('struct KernelModSkinView: View {' + chr(10) +
+                    '    var body: some View {' + chr(10) +
+                    '        KernelPremiumSkinView()' + chr(10) +
+                    '    }' + chr(10) +
+                    '}')
+        if old_placeholder in code:
+            code = code.replace(old_placeholder, new_view)
+            with open(cview, 'w') as f:
+                f.write(code)
+            print('[setup] ✓ ContentView ModSkin → KernelPremiumSkinView')
+
+    # ── 5. Патч SettingsView — вставить LiveFeed сверху ────
+    sview = os.path.join(ROOT, 'Sources', 'views', 'SettingsView.swift')
+    if os.path.exists(sview):
+        with open(sview, 'r') as f:
+            code = f.read()
+        if 'KernelLiveFeedView' not in code:
+            # Ищу конкретную строку начала Logo Section чтобы вставить перед ней LiveFeed
+            marker = '            Form {' + chr(10) + '                // Logo'
+            new_marker = ('            Form {' + chr(10) +
+                          '                // KERNEL LIVE FEED' + chr(10) +
+                          '                Section {' + chr(10) +
+                          '                    KernelLiveFeedView()' + chr(10) +
+                          '                        .listRowBackground(Color.clear)' + chr(10) +
+                          '                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))' + chr(10) +
+                          '                }' + chr(10) +
+                          '                // Logo')
+            if marker in code:
+                code = code.replace(marker, new_marker, 1)
+                with open(sview, 'w') as f:
+                    f.write(code)
+                print('[setup] ✓ SettingsView + LiveFeed')
+            else:
+                print('[setup] SettingsView marker not found')
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -51392,6 +51740,7 @@ def write_files():
     _patch_theme_wire()
     _patch_launcher_and_boot()
     _patch_feature_selector()
+    _patch_premium_ui()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
