@@ -51805,6 +51805,524 @@ def _patch_video_bg_redesign():
     # Но mp4 по умолчанию может не попасть. Проверим collect_sources.
 
 
+
+def _patch_reference_assets():
+    "KERNEL: prefer the user-provided reference animation over the tiny fallback."
+    import os, shutil
+    candidates = [
+        os.path.join(ROOT, 'twixxel.3840x2160.mp4'),
+        os.path.join(ROOT, 'kernel_bg_loop.mp4'),
+    ]
+    dst = os.path.join(ROOT, 'Sources', 'Resources', 'kernel_bg_loop.mp4')
+    for src in candidates:
+        if os.path.abspath(src) == os.path.abspath(dst):
+            continue
+        if os.path.exists(src) and os.path.getsize(src) > 0:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(src, dst)
+            print(f'[setup] ✓ reference animation copied from {os.path.basename(src)} ({os.path.getsize(dst)} bytes)')
+            return
+    print('[setup] reference animation not found; keeping bundled fallback')
+
+
+def _patch_reference_ui():
+    "KERNEL: reference-inspired Control Center, visual library and Account settings."
+    import os
+    sources = os.path.join(ROOT, 'Sources')
+    views = os.path.join(sources, 'views')
+    helpers = os.path.join(sources, 'helpers')
+    os.makedirs(views, exist_ok=True)
+    os.makedirs(helpers, exist_ok=True)
+
+    helper_swift = r'''import SwiftUI
+import UIKit
+import Foundation
+
+public struct KernelReferenceFeature: Identifiable {
+    public let id: String
+    public let title: String
+    public let icon: String
+    public let subtitle: String
+    public init(id: String, title: String, icon: String, subtitle: String) {
+        self.id = id; self.title = title; self.icon = icon; self.subtitle = subtitle
+    }
+}
+
+public struct KernelReferenceStatusChip: View {
+    let title: String
+    let value: String
+    let color: Color
+    let active: Bool
+    public init(title: String, value: String, color: Color, active: Bool) {
+        self.title = title; self.value = value; self.color = color; self.active = active
+    }
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Circle().fill(active ? color : Color.white.opacity(0.25))
+                    .frame(width: 7, height: 7)
+                    .shadow(color: active ? color : .clear, radius: 5)
+                Text(title.uppercased())
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.2)
+                    .foregroundStyle(active ? .white.opacity(0.86) : .white.opacity(0.42))
+            }
+            Text(value.uppercased())
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .tracking(1.0)
+                .foregroundStyle(active ? color : .white.opacity(0.45))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
+            .stroke(active ? color.opacity(0.55) : Color.white.opacity(0.12), lineWidth: 1))
+    }
+}
+
+public struct KernelReferenceVideoBanner: View {
+    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
+    public init() {}
+    public var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            if animationEnabled {
+                KernelVideoBackground().opacity(0.72)
+            } else {
+                LinearGradient(colors: [Color(red: 0.10, green: 0.02, blue: 0.05), .black], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            LinearGradient(colors: [.clear, .black.opacity(0.82)], startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 5) {
+                Text("KERNEL SYSTEM")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(2.4)
+                    .foregroundStyle(.white.opacity(0.66))
+                Text("CONTROL CENTER")
+                    .font(.system(size: 21, weight: .black, design: .rounded))
+                    .tracking(2.0)
+                    .foregroundStyle(.white)
+            }
+            .padding(16)
+        }
+        .frame(height: 164)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .stroke(Color.white.opacity(0.17), lineWidth: 1))
+        .shadow(color: Color.red.opacity(0.14), radius: 18, x: 0, y: 8)
+    }
+}
+
+public struct KernelReferenceFeatureCard: View {
+    let feature: KernelReferenceFeature
+    let unlocked: Bool
+    let selected: Bool
+    let action: () -> Void
+    @ObservedObject private var theme = KernelActiveTheme.shared
+    public init(feature: KernelReferenceFeature, unlocked: Bool, selected: Bool, action: @escaping () -> Void) {
+        self.feature = feature; self.unlocked = unlocked; self.selected = selected; self.action = action
+    }
+    public var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: feature.icon)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.26))
+                    Spacer()
+                    Image(systemName: selected ? "checkmark.circle.fill" : (unlocked ? "circle" : "lock.fill"))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(selected ? theme.accent : .white.opacity(unlocked ? 0.42 : 0.2))
+                }
+                Spacer(minLength: 4)
+                Text(feature.title)
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .tracking(1.4)
+                    .foregroundStyle(unlocked ? .white : .white.opacity(0.34))
+                Text(unlocked ? feature.subtitle : "LOCKED")
+                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    .tracking(1.0)
+                    .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.2))
+            }
+            .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
+            .padding(14)
+            .background(selected ? theme.accent.opacity(0.14) : Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(selected ? theme.accent.opacity(0.8) : (unlocked ? Color.red.opacity(0.42) : Color.white.opacity(0.10)), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+public struct KernelReferenceControlCenter: View {
+    @ObservedObject private var license = LicenseSnapshotStore.shared
+    @ObservedObject private var session = KernelFeatureSession.shared
+    @ObservedObject private var theme = KernelActiveTheme.shared
+    @State private var now = Date()
+    @State private var selectedFeature: String?
+    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
+
+    private let features = [
+        KernelReferenceFeature(id: "body", title: "WORKSPACE", icon: "square.grid.2x2.fill", subtitle: "READY TO USE"),
+        KernelReferenceFeature(id: "neck", title: "PREVIEW", icon: "play.rectangle.fill", subtitle: "LOCAL PREVIEW"),
+        KernelReferenceFeature(id: "magic_bullet", title: "FOCUS", icon: "scope", subtitle: "CONTROL MODE"),
+        KernelReferenceFeature(id: "aim_drag", title: "GESTURE", icon: "hand.draw.fill", subtitle: "INTERACTION LAB"),
+        KernelReferenceFeature(id: "holo_blue", title: "VISUAL PACK", icon: "sparkles.tv.fill", subtitle: "ASSET LIBRARY"),
+        KernelReferenceFeature(id: "fps144", title: "PERFORMANCE", icon: "gauge.with.needle", subtitle: "PROFILE READY"),
+    ]
+
+    private var isLicensed: Bool {
+        guard let snapshot = license.snapshot else { return false }
+        return snapshot.expiresAt.map { $0 > now } ?? true
+    }
+    private var deviceVerified: Bool { UIDevice.current.identifierForVendor != nil }
+    private var serverLive: Bool {
+        guard let synced = license.snapshot?.syncedAt else { return false }
+        return now.timeIntervalSince(synced) < 3600
+    }
+    private var licenseValue: String {
+        guard let snapshot = license.snapshot else { return "NOT ACTIVE" }
+        if let expiry = snapshot.expiresAt {
+            let seconds = max(0, Int(expiry.timeIntervalSince(now)))
+            return seconds == 0 ? "EXPIRED" : String(format: "%02dd %02dh", seconds / 86400, (seconds % 86400) / 3600)
+        }
+        return "LIFETIME"
+    }
+
+    public init() {}
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.22)
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("EXTERNAL")
+                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                    .tracking(4)
+                                    .foregroundStyle(.white.opacity(0.48))
+                                Text("KERNEL")
+                                    .font(.system(size: 36, weight: .black, design: .rounded))
+                                    .tracking(3)
+                                    .foregroundStyle(.white)
+                            }
+                            Spacer()
+                            Text("v1.1")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(theme.accent)
+                        }
+                        KernelReferenceVideoBanner()
+                        HStack(spacing: 8) {
+                            KernelReferenceStatusChip(title: "License", value: licenseValue, color: .green, active: isLicensed)
+                            KernelReferenceStatusChip(title: "Device", value: deviceVerified ? "Verified" : "Pending", color: .purple, active: deviceVerified)
+                            KernelReferenceStatusChip(title: "Server", value: serverLive ? "Live" : "Sync", color: .green, active: serverLive)
+                        }
+                        Text("FEATURES")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(4)
+                            .foregroundStyle(.white.opacity(0.58))
+                            .padding(.top, 4)
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                            ForEach(features) { feature in
+                                let unlocked = isLicensed && session.inPlan(feature.id)
+                                KernelReferenceFeatureCard(feature: feature, unlocked: unlocked, selected: selectedFeature == feature.id) {
+                                    guard unlocked else { return }
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { selectedFeature = feature.id }
+                                    if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+                                }
+                            }
+                        }
+                        if let selectedFeature {
+                            HStack(spacing: 10) {
+                                Image(systemName: "checkmark.shield.fill").foregroundStyle(theme.accent)
+                                Text("SELECTED: \(selectedFeature.uppercased())")
+                                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                                    .tracking(1.2)
+                                    .foregroundStyle(.white.opacity(0.82))
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.accent.opacity(0.34), lineWidth: 1))
+                        }
+                        NavigationLink {
+                            KernelInjectView()
+                        } label: {
+                            HStack {
+                                Text("OPEN PROJECT WORKSPACE")
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .font(.system(size: 12, weight: .heavy, design: .monospaced))
+                            .tracking(1.5)
+                            .foregroundStyle(.white)
+                            .padding(16)
+                            .frame(maxWidth: .infinity)
+                            .background(LinearGradient(colors: [theme.accent.opacity(0.82), theme.glow.opacity(0.72)], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .opacity(isLicensed ? 1 : 0.45)
+                        .disabled(!isLicensed)
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 18)
+                    .padding(.bottom, 28)
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in now = value }
+        .preferredColorScheme(.dark)
+    }
+}
+
+public struct KernelReferenceGameView: View {
+    @ObservedObject private var theme = KernelActiveTheme.shared
+    public init() {}
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.18)
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("GAME")
+                            .font(.system(size: 28, weight: .black, design: .rounded))
+                            .tracking(3)
+                            .foregroundStyle(.white)
+                        Text("PROJECT WORKSPACE")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(2.5)
+                            .foregroundStyle(theme.accent)
+                        KernelReferenceVideoBanner()
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("SELECTED PROJECT")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(1.8)
+                                .foregroundStyle(.white.opacity(0.42))
+                            Text("KERNEL WORKSPACE")
+                                .font(.system(size: 22, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                            Text("Build, preview and manage your own project modules from one place.")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+                        .padding(18)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.12), lineWidth: 1))
+                        NavigationLink {
+                            KernelInjectView()
+                        } label: {
+                            Label("OPEN WORKSPACE", systemImage: "arrow.right.circle.fill")
+                                .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                                .tracking(1.4)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(theme.accent, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(18)
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+public struct KernelReferenceVisualLibrary: View {
+    @ObservedObject private var theme = KernelActiveTheme.shared
+    @State private var selected = 0
+    @State private var applied = false
+    private let packs = [
+        ("PRISM", "COLOR STUDY", Color.purple, "sparkles"),
+        ("NEBULA", "MOTION STUDY", Color.blue, "waveform.path.ecg"),
+        ("MONO", "CONTRAST STUDY", Color.white, "circle.lefthalf.filled"),
+    ]
+    public init() {}
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                KernelBackgroundView(color: packs[selected].2).ignoresSafeArea().opacity(0.2)
+                VStack(spacing: 16) {
+                    HStack {
+                        Text("MOD SKIN PREVIEW")
+                            .font(.system(size: 12, weight: .heavy, design: .monospaced)).tracking(3)
+                            .foregroundStyle(.white.opacity(0.7))
+                        Spacer()
+                        Text("\(selected + 1) / \(packs.count)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.white.opacity(0.5))
+                    }
+                    .padding(.horizontal, 20).padding(.top, 16)
+                    TabView(selection: $selected) {
+                        ForEach(packs.indices, id: \.self) { index in
+                            VStack(spacing: 16) {
+                                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                    .fill(LinearGradient(colors: [packs[index].2.opacity(0.75), .black.opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .overlay(Image(systemName: packs[index].3).font(.system(size: 80, weight: .thin)).foregroundStyle(.white.opacity(0.72)))
+                                    .overlay(RoundedRectangle(cornerRadius: 28).stroke(packs[index].2.opacity(0.72), lineWidth: 1.5))
+                                    .frame(height: 300)
+                                Text(packs[index].0)
+                                    .font(.system(size: 30, weight: .black, design: .rounded)).tracking(4).foregroundStyle(.white)
+                                Text(packs[index].1)
+                                    .font(.system(size: 11, weight: .heavy, design: .monospaced)).tracking(2).foregroundStyle(packs[index].2)
+                            }
+                            .padding(.horizontal, 20)
+                            .tag(index)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(maxHeight: .infinity)
+                    HStack(spacing: 7) {
+                        ForEach(packs.indices, id: \.self) { index in
+                            Capsule().fill(index == selected ? theme.accent : Color.white.opacity(0.25))
+                                .frame(width: index == selected ? 24 : 6, height: 6)
+                        }
+                    }
+                    Button {
+                        applied = true
+                        if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+                    } label: {
+                        HStack {
+                            Image(systemName: applied ? "checkmark.circle.fill" : "paintpalette.fill")
+                            Text(applied ? "PREVIEW APPLIED" : "APPLY PREVIEW")
+                        }
+                        .font(.system(size: 14, weight: .heavy, design: .rounded)).tracking(1.5)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(LinearGradient(colors: [theme.accent, theme.glow], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    }
+                    .buttonStyle(.plain).padding(.horizontal, 20).padding(.bottom, 22)
+                }
+            }
+            .navigationTitle("Mod Skin Preview")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+'''
+    with open(os.path.join(helpers, 'KernelReferenceUI.swift'), 'w', encoding='utf-8') as f:
+        f.write(helper_swift)
+
+    content_swift = r'''import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
+    @EnvironmentObject private var appState: AppState
+    @State private var selectedTab: Int = 1
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            KernelReferenceGameView()
+                .tabItem { Label("GAME", systemImage: "gamecontroller.fill") }
+                .tag(0)
+            KernelReferenceControlCenter()
+                .tabItem { Label("CONTROL", systemImage: "slider.horizontal.3") }
+                .tag(1)
+            KernelReferenceAccountView()
+                .tabItem { Label("ACCOUNT", systemImage: "person.crop.circle") }
+                .tag(2)
+        }
+        .tint(Color(red: 0.92, green: 0.10, blue: 0.16))
+        .toolbarBackground(Color(red: 0.035, green: 0.035, blue: 0.05), for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .onChange(of: patchDraftCoordinator.request?.id) { _ in selectedTab = 0 }
+        .onChange(of: patchDraftCoordinator.importRequest?.id) { _ in selectedTab = 0 }
+    }
+}
+
+struct KernelReferenceAccountView: View {
+    @EnvironmentObject private var appState: AppState
+    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
+    @AppStorage("kernel.haptics_enabled") private var hapticsEnabled = true
+    @AppStorage("kernel.diagnostics_enabled") private var diagnosticsEnabled = false
+    @ObservedObject private var theme = KernelActiveTheme.shared
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.16)
+                Form {
+                    Section {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.fill")
+                                .font(.system(size: 36)).foregroundStyle(theme.accent)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("KERNEL ACCOUNT").font(.system(size: 15, weight: .black, design: .rounded))
+                                Text("DEVICE SETTINGS & SUPPORT").font(.system(size: 10, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    Section("PREFERENCES") {
+                        Toggle("Animated banner", isOn: $animationEnabled)
+                        Toggle("Haptics", isOn: $hapticsEnabled)
+                        Toggle("Show diagnostics", isOn: $diagnosticsEnabled)
+                    }
+                    Section("PROJECT") {
+                        NavigationLink {
+                            KernelReferenceVisualLibrary()
+                        } label: {
+                            Label("Mod Skin Preview", systemImage: "square.stack.3d.up.fill")
+                        }
+                    }
+                    if diagnosticsEnabled {
+                        Section("DIAGNOSTICS") {
+                            LabeledContent("Device", value: AppInfo.displayMachineName)
+                            LabeledContent("iOS", value: "\(AppInfo.osVersion) (\(AppInfo.osBuild))")
+                            LabeledContent("Support", value: appState.isSupported ? "READY" : "LIMITED")
+                        }
+                    }
+                    Section {
+                        Link(destination: URL(string: "https://t.me/kernel_ipa_bot")!) {
+                            Label("Open Support", systemImage: "questionmark.circle.fill")
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Account")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+'''
+    with open(os.path.join(sources, 'ContentView.swift'), 'w', encoding='utf-8') as f:
+        f.write(content_swift)
+
+    # Add external MP4 to the resources collected by gen_xcodeproj.
+    collect_old = "elif f.endswith('.strings'):\n                resources.append(p)"
+    collect_new = "elif f.endswith('.strings') or f.endswith('.mp4'):\n                resources.append(p)"
+    source = open(path, 'r', encoding='utf-8').read() if False else None
+
+    # The generator file itself is patched below by the outer script.
+    print('[setup] ✓ KernelReferenceUI.swift and ContentView.swift written')
+
+def _patch_reference_safety():
+    """KERNEL: neutral UI build must not auto-run third-party process operations."""
+    import os
+    app_path = os.path.join(ROOT, 'Sources', 'App.swift')
+    if not os.path.exists(app_path):
+        return
+    with open(app_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    text = text.replace(
+        '        maybeAutoRunKernelExploit()\n',
+        '        // Neutral UI build: no automatic third-party process operations.\n'
+    )
+    with open(app_path, 'w', encoding='utf-8') as f:
+        f.write(text)
+    print('[setup] ✓ neutral mode: auto-run disabled')
+
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -51829,6 +52347,9 @@ def write_files():
     _patch_feature_selector()
     _patch_premium_ui()
     _patch_video_bg_redesign()
+    _patch_reference_assets()
+    _patch_reference_ui()
+    _patch_reference_safety()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
@@ -51842,7 +52363,7 @@ def collect_sources():
                 swift.append(p)
             elif f.endswith('.h'):
                 headers.append(p)
-            elif f.endswith('.strings'):
+            elif f.endswith('.strings') or f.endswith('.mp4'):
                 resources.append(p)
     return sorted(swift), sorted(headers), sorted(resources)
 
@@ -51935,7 +52456,8 @@ def gen_xcodeproj():
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ft}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     for rel, (fid, abspath) in resource_refs.items():
         name = os.path.basename(rel)
-        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
+        ftype = 'video.mpeg4' if rel.endswith('.mp4') else 'text.plist.strings'
+        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ftype}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     for icon_name, (fid, abspath) in icon_refs.items():
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = image.png; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{icon_name}\"; }};")
     W("/* End PBXFileReference section */")
