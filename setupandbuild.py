@@ -51843,8 +51843,9 @@ public struct KernelReferenceFeature: Identifiable {
     public let title: String
     public let icon: String
     public let subtitle: String
-    public init(id: String, title: String, icon: String, subtitle: String) {
-        self.id = id; self.title = title; self.icon = icon; self.subtitle = subtitle
+    public let category: String
+    public init(id: String, title: String, icon: String, subtitle: String, category: String = "MODULE") {
+        self.id = id; self.title = title; self.icon = icon; self.subtitle = subtitle; self.category = category
     }
 }
 
@@ -51953,21 +51954,129 @@ public struct KernelReferenceFeatureCard: View {
     }
 }
 
+public struct KernelReferenceProjectDetails: View {
+    let feature: KernelReferenceFeature
+    let available: Bool
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var theme = KernelActiveTheme.shared
+    @State private var previewApplied = false
+
+    public init(feature: KernelReferenceFeature, available: Bool) {
+        self.feature = feature; self.available = available
+    }
+
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.18)
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(theme.accent.opacity(0.14))
+                                .frame(width: 64, height: 64)
+                            Image(systemName: feature.icon)
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundStyle(theme.accent)
+                        }
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(feature.category.uppercased())
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                                .tracking(2)
+                                .foregroundStyle(theme.accent)
+                            Text(feature.title)
+                                .font(.system(size: 22, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(theme.accent.opacity(0.35), lineWidth: 1))
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("PROJECT DETAILS")
+                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .tracking(2.2)
+                            .foregroundStyle(.white.opacity(0.45))
+                        detailRow("STATUS", available ? "AVAILABLE" : "LOCKED", available ? .green : .red)
+                        detailRow("MODE", "LOCAL PREVIEW", theme.accent)
+                        detailRow("SYNC", "LICENSE CONTROLLED", .white.opacity(0.7))
+                    }
+                    .padding(16)
+                    .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.12), lineWidth: 1))
+
+                    Spacer()
+
+                    Button {
+                        guard available else { return }
+                        previewApplied = true
+                        if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+                    } label: {
+                        HStack {
+                            Image(systemName: previewApplied ? "checkmark.circle.fill" : "play.fill")
+                            Text(previewApplied ? "PREVIEW ACTIVE" : "START LOCAL PREVIEW")
+                        }
+                        .font(.system(size: 13, weight: .heavy, design: .monospaced))
+                        .tracking(1.2)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(available ? theme.accent : Color.gray.opacity(0.35), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!available)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Preview")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder private func detailRow(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                .tracking(1.5)
+                .foregroundStyle(.white.opacity(0.42))
+            Spacer()
+            Text(value)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundStyle(color)
+        }
+    }
+}
+
 public struct KernelReferenceControlCenter: View {
     @ObservedObject private var license = LicenseSnapshotStore.shared
     @ObservedObject private var session = KernelFeatureSession.shared
     @ObservedObject private var theme = KernelActiveTheme.shared
     @State private var now = Date()
     @State private var selectedFeature: String?
+    @State private var detailFeature: KernelReferenceFeature?
     @AppStorage("kernel.animation_enabled") private var animationEnabled = true
 
     private let features = [
-        KernelReferenceFeature(id: "body", title: "WORKSPACE", icon: "square.grid.2x2.fill", subtitle: "READY TO USE"),
-        KernelReferenceFeature(id: "neck", title: "PREVIEW", icon: "play.rectangle.fill", subtitle: "LOCAL PREVIEW"),
-        KernelReferenceFeature(id: "magic_bullet", title: "FOCUS", icon: "scope", subtitle: "CONTROL MODE"),
-        KernelReferenceFeature(id: "aim_drag", title: "GESTURE", icon: "hand.draw.fill", subtitle: "INTERACTION LAB"),
-        KernelReferenceFeature(id: "holo_blue", title: "VISUAL PACK", icon: "sparkles.tv.fill", subtitle: "ASSET LIBRARY"),
-        KernelReferenceFeature(id: "fps144", title: "PERFORMANCE", icon: "gauge.with.needle", subtitle: "PROFILE READY"),
+        KernelReferenceFeature(id: "body", title: "AIM BODY", icon: "figure.stand", subtitle: "LOCAL PREVIEW", category: "AIM"),
+        KernelReferenceFeature(id: "neck", title: "AIM NECK", icon: "person.bust", subtitle: "LOCAL PREVIEW", category: "AIM"),
+        KernelReferenceFeature(id: "magic_bullet", title: "MAGIC BULLET", icon: "scope", subtitle: "LOCAL PREVIEW", category: "AIM"),
+        KernelReferenceFeature(id: "aim_drag", title: "AIM DRAG", icon: "hand.draw.fill", subtitle: "LOCAL PREVIEW", category: "AIM"),
+        KernelReferenceFeature(id: "holo_blue", title: "HOLOGRAM BLUE", icon: "sparkles.tv.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
+        KernelReferenceFeature(id: "holo_full", title: "HOLOGRAM FULL", icon: "sparkles", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
+        KernelReferenceFeature(id: "holo_pink", title: "HOLOGRAM PINK", icon: "heart.circle.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
+        KernelReferenceFeature(id: "chams", title: "CHAMS", icon: "eye.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
+        KernelReferenceFeature(id: "fps144", title: "144 FPS", icon: "gauge.with.needle", subtitle: "PROFILE PREVIEW", category: "PERFORMANCE"),
+        KernelReferenceFeature(id: "skin", title: "MOD SKIN", icon: "tshirt.fill", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
+        KernelReferenceFeature(id: "skin_alok", title: "SKIN ALOK", icon: "person.crop.circle", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
+        KernelReferenceFeature(id: "skin_dimitri", title: "SKIN DIMITRI", icon: "person.crop.square", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
     ]
 
     private var isLicensed: Bool {
@@ -52028,7 +52137,10 @@ public struct KernelReferenceControlCenter: View {
                                 let unlocked = isLicensed && session.inPlan(feature.id)
                                 KernelReferenceFeatureCard(feature: feature, unlocked: unlocked, selected: selectedFeature == feature.id) {
                                     guard unlocked else { return }
-                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { selectedFeature = feature.id }
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                                        selectedFeature = feature.id
+                                        detailFeature = feature
+                                    }
                                     if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
                                 }
                             }
@@ -52047,10 +52159,10 @@ public struct KernelReferenceControlCenter: View {
                             .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.accent.opacity(0.34), lineWidth: 1))
                         }
                         NavigationLink {
-                            KernelInjectView()
+                            KernelReferenceVisualLibrary()
                         } label: {
                             HStack {
-                                Text("OPEN PROJECT WORKSPACE")
+                                Text("OPEN VISUAL WORKSPACE")
                                 Spacer()
                                 Image(systemName: "arrow.up.right")
                             }
@@ -52073,6 +52185,9 @@ public struct KernelReferenceControlCenter: View {
             .navigationBarHidden(true)
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in now = value }
+        .sheet(item: $detailFeature) { feature in
+            KernelReferenceProjectDetails(feature: feature, available: isLicensed && session.inPlan(feature.id))
+        }
         .preferredColorScheme(.dark)
     }
 }
@@ -52323,6 +52438,47 @@ def _patch_reference_safety():
     print('[setup] ✓ neutral mode: auto-run disabled')
 
 
+def _patch_reference_activation_ui():
+    "KERNEL: compact gray authorization styling for the reference UI."
+    import os
+    view_path = os.path.join(ROOT, 'Sources', 'views', 'KeyActivationView.swift')
+    if not os.path.exists(view_path):
+        return
+    with open(view_path, 'r', encoding='utf-8') as f:
+        code = f.read()
+    code = code.replace(
+        'KernelHeroTitle("KERNEL IPA", font: .system(size: 40, weight: .black, design: .rounded))',
+        'Text("KERNEL IPA").font(.system(size: 27, weight: .black, design: .rounded)).tracking(2.8).foregroundStyle(Color.white.opacity(0.78))'
+    )
+    code = code.replace(
+        '.padding(.bottom: 32)' + chr(10) + chr(10) + '                // Check steps',
+        '.padding(.bottom: 18)' + chr(10) + chr(10) + '                // Check steps',
+        1
+    )
+    code = code.replace('.padding(.horizontal, 16).frame(height: 46)', '.padding(.horizontal, 14).frame(height: 36)', 1)
+    code = code.replace('.font(.system(size: 12, weight: .semibold, design: .monospaced))', '.font(.system(size: 11, weight: .semibold, design: .monospaced))', 1)
+    old_activate = '''                    .background(LinearGradient(colors: [KernelActiveTheme.shared.accent, KernelActiveTheme.shared.glow], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(KernelActiveTheme.shared.glow.opacity(0.7), lineWidth: 1))
+                    .shadow(color: KernelActiveTheme.shared.accent.opacity(0.6), radius: 14, x: 0, y: 4)'''
+    new_activate = '''                    .background(Color.gray.opacity(0.42), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.30), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.24), radius: 8, x: 0, y: 3)'''
+    code = code.replace(old_activate, new_activate, 1)
+    old_get = '''                        .foregroundColor(KernelActiveTheme.shared.accent.opacity(0.9))
+                        .frame(maxWidth: .infinity).frame(height: 40)
+                        .background(KernelTheme.bgSurface.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(KernelActiveTheme.shared.accent.opacity(0.4), lineWidth: 1))'''
+    new_get = '''                        .foregroundColor(Color.white.opacity(0.68))
+                        .frame(maxWidth: .infinity).frame(height: 38)
+                        .background(Color.gray.opacity(0.30))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.22), lineWidth: 1))'''
+    code = code.replace(old_get, new_get, 1)
+    with open(view_path, 'w', encoding='utf-8') as f:
+        f.write(code)
+    print('[setup] ✓ compact gray authorization UI')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -52350,6 +52506,7 @@ def write_files():
     _patch_reference_assets()
     _patch_reference_ui()
     _patch_reference_safety()
+    _patch_reference_activation_ui()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
