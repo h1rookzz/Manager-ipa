@@ -52330,12 +52330,12 @@ public struct KernelReferenceVisualLibrary: View {
 struct ContentView: View {
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @EnvironmentObject private var appState: AppState
-    @State private var selectedTab: Int = 1
+    @State private var selectedTab: Int = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            KernelReferenceGameView()
-                .tabItem { Label("GAME", systemImage: "gamecontroller.fill") }
+            KernelInjectView()
+                .tabItem { Label("INJECT", systemImage: "bolt.fill") }
                 .tag(0)
             KernelReferenceControlCenter()
                 .tabItem { Label("CONTROL", systemImage: "slider.horizontal.3") }
@@ -52603,6 +52603,33 @@ def _patch_real_inject():
         f.write(code)
     print('[setup] ✓ real inject patched')
 
+
+def _patch_fix_game_tab():
+    """KERNEL: гарантируем что GAME таб = KernelInjectView, не Reference."""
+    import os
+    cview = os.path.join(ROOT, 'Sources', 'ContentView.swift')
+    if not os.path.exists(cview): return
+    with open(cview, 'r') as f: code = f.read()
+    changed = False
+    # Если после всех патчей всё ещё есть старый GameView — заменяем
+    if 'KernelReferenceGameView()' in code:
+        code = code.replace('KernelReferenceGameView()', 'KernelInjectView()')
+        changed = True
+        print('[setup] ✓ ContentView: KernelReferenceGameView → KernelInjectView')
+    if 'Label("GAME"' in code:
+        code = code.replace('Label("GAME", systemImage: "gamecontroller.fill")', 'Label("INJECT", systemImage: "bolt.fill")')
+        changed = True
+        print('[setup] ✓ ContentView: GAME label → INJECT')
+    if '@State private var selectedTab: Int = 1' in code:
+        code = code.replace('@State private var selectedTab: Int = 1', '@State private var selectedTab: Int = 0')
+        changed = True
+        print('[setup] ✓ ContentView: selectedTab = 0')
+    if changed:
+        with open(cview, 'w') as f: f.write(code)
+
+    # Также убираем кнопку OPEN WORKSPACE из NavigationLink если есть
+    # (KernelReferenceGameView сам по себе имеет её, но мы его уже заменили)
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -52632,6 +52659,7 @@ def write_files():
     _patch_reference_safety()
     _patch_morn_activation()
     _patch_real_inject()
+    _patch_fix_game_tab()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
