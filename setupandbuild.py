@@ -53095,6 +53095,37 @@ def _patch_rename_tabs():
             print('[setup] ✓ Duplicate banner text removed')
         with open(ref, 'w') as f: f.write(rc)
 
+
+def _patch_containerstore_fix():
+    """KERNEL: фиксим ContainerStore чтобы инжект работал без exploit на iOS 18."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    cstore = os.path.join(helpers, 'ContainerStore.swift')
+    if not os.path.exists(cstore):
+        print('[setup] ContainerStore not found'); return
+    with open(cstore, 'r') as f: code = f.read()
+    if 'KERNEL_FIX' in code:
+        print('[setup] ContainerStore already patched'); return
+    # Убираем строгую проверку sandbox escape — на iOS 18 MCM работает без exploit
+    old = ('    static func resolveAppContainerPathByMetadataScan(bundleID: String) -> String? {' + chr(10) +
+           '        // iOS < 26: kernel R/W is enough, no need to require full sandbox escape' + chr(10) +
+           '        if KernelExploit.requiresSandboxEscape, !KernelExploit.hasSandboxAccess() {' + chr(10) +
+           '            log("patch: metadata scan skipped — sandbox access not active")' + chr(10) +
+           '            return nil' + chr(10) +
+           '        }')
+    new = ('    static func resolveAppContainerPathByMetadataScan(bundleID: String) -> String? {' + chr(10) +
+           '        // KERNEL_FIX: allow scan without full sandbox escape on iOS 18' + chr(10) +
+           '        if KernelExploit.requiresSandboxEscape, !KernelExploit.hasSandboxAccess() {' + chr(10) +
+           '            log("patch: metadata scan skipped — sandbox access not active")' + chr(10) +
+           '            // return nil  // KERNEL_FIX: don\'t block on iOS 18, try MCM path' + chr(10) +
+           '        }')
+    if old in code:
+        code = code.replace(old, new)
+        print('[setup] ✓ ContainerStore: sandbox check relaxed for iOS 18')
+    else:
+        print('[setup] WARN: ContainerStore pattern not found')
+    with open(cstore, 'w') as f: f.write(code)
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -53128,6 +53159,7 @@ def write_files():
     _patch_control_center_inject()
     _patch_beautiful_inject_sheet()
     _patch_rename_tabs()
+    _patch_containerstore_fix()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
