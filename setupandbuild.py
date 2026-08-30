@@ -52334,15 +52334,12 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            KernelInjectView()
-                .tabItem { Label("INJECT", systemImage: "bolt.fill") }
-                .tag(0)
-            KernelReferenceControlCenter()
+            KernelRealInjectCenter()
                 .tabItem { Label("CONTROL", systemImage: "slider.horizontal.3") }
-                .tag(1)
+                .tag(0)
             KernelReferenceAccountView()
                 .tabItem { Label("ACCOUNT", systemImage: "person.crop.circle") }
-                .tag(2)
+                .tag(1)
         }
         .tint(Color(red: 0.92, green: 0.10, blue: 0.16))
         .toolbarBackground(Color(red: 0.035, green: 0.035, blue: 0.05), for: .tabBar)
@@ -52852,6 +52849,204 @@ def _patch_control_center_inject():
     with open(ref_ui, 'w') as f: f.write(code)
     print('[setup] ✓ KernelRealInjectCenter written (Robot External style)')
 
+
+def _patch_beautiful_inject_sheet():
+    """KERNEL: красивый inject sheet — нажал, сразу inject с анимацией."""
+    import os
+    views = os.path.join(ROOT, 'Sources', 'views')
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if not os.path.exists(iview): return
+    with open(iview, 'r') as f: code = f.read()
+    if 'BeautifulInjectSheet' in code: return
+
+    # Дописываем новый BeautifulInjectSheet в конец файла
+    sheet_code = chr(10).join([
+        '',
+        '// MARK: - Beautiful Inject Sheet',
+        'struct BeautifulInjectSheet: View {',
+        '    @Environment(\.dismiss) private var dismiss',
+        '    let instance: KernelPatchInstance',
+        '    let targetName: String',
+        '    let targetBundleID: String',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    @State private var phase: InjectPhase = .idle',
+        '    @State private var progress: Double = 0',
+        '    @State private var resultMsg = ""',
+        '    @Environment(\.appLanguage) private var language',
+        '',
+        '    enum InjectPhase { case idle, downloading, injecting, done, failed }',
+        '',
+        '    var body: some View {',
+        '        ZStack {',
+        '            Color.black.ignoresSafeArea()',
+        '            KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.12)',
+        '            VStack(spacing: 0) {',
+        '                // Header',
+        '                HStack {',
+        '                    Button("Close") { dismiss() }.foregroundStyle(theme.accent)',
+        '                    Spacer()',
+        '                    Text("INJECT").font(.system(size: 15, weight: .black, design: .monospaced)).foregroundStyle(.white)',
+        '                    Spacer()',
+        '                    Button("Close") {}.foregroundStyle(.clear)',
+        '                }',
+        '                .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 20)',
+        '',
+        '                Spacer()',
+
+        '                // Feature icon + name',
+        '                VStack(spacing: 16) {',
+        '                    ZStack {',
+        '                        Circle()',
+        '                            .fill(theme.accent.opacity(0.12))',
+        '                            .frame(width: 100, height: 100)',
+        '                            .overlay(Circle().stroke(theme.accent.opacity(0.4), lineWidth: 1.5))',
+        '                        if phase == .downloading || phase == .injecting {',
+        '                            Circle()',
+        '                                .trim(from: 0, to: progress)',
+        '                                .stroke(theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))',
+        '                                .frame(width: 100, height: 100)',
+        '                                .rotationEffect(.degrees(-90))',
+        '                                .animation(.linear(duration: 0.3), value: progress)',
+        '                        }',
+        '                        if phase == .done {',
+        '                            Image(systemName: "checkmark")',
+        '                                .font(.system(size: 32, weight: .heavy))',
+        '                                .foregroundStyle(Color.green)',
+        '                        } else if phase == .failed {',
+        '                            Image(systemName: "xmark")',
+        '                                .font(.system(size: 32, weight: .heavy))',
+        '                                .foregroundStyle(Color.red)',
+        '                        } else {',
+        '                            Image(systemName: instance.icon)',
+        '                                .font(.system(size: 36, weight: .medium))',
+        '                                .foregroundStyle(theme.accent)',
+        '                        }',
+        '                    }',
+
+        '                    VStack(spacing: 6) {',
+        '                        Text(instance.label)',
+        '                            .font(.system(size: 22, weight: .black, design: .rounded))',
+        '                            .foregroundStyle(.white)',
+        '                        Text(targetName.uppercased())',
+        '                            .font(.system(size: 11, weight: .heavy, design: .monospaced))',
+        '                            .tracking(2).foregroundStyle(theme.accent)',
+        '                        Text(targetBundleID)',
+        '                            .font(.system(size: 9, weight: .regular, design: .monospaced))',
+        '                            .foregroundStyle(.white.opacity(0.3))',
+        '                    }',
+
+        '                    // Status text',
+        '                    Text(statusText)',
+        '                        .font(.system(size: 13, weight: .semibold, design: .monospaced))',
+        '                        .foregroundStyle(statusColor)',
+        '                        .animation(.easeInOut, value: phase)',
+        '                }',
+
+        '                Spacer()',
+
+        '                // Big inject button',
+        '                Button {',
+        '                    guard phase == .idle || phase == .failed else { return }',
+        '                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()',
+        '                    Task { await runInject() }',
+        '                } label: {',
+        '                    HStack(spacing: 12) {',
+        '                        if phase == .downloading || phase == .injecting {',
+        '                            ProgressView().tint(.white).scaleEffect(0.9)',
+        '                        } else {',
+        '                            Image(systemName: "bolt.fill")',
+        '                        }',
+        '                        Text(buttonLabel)',
+        '                            .tracking(2)',
+        '                    }',
+        '                    .font(.system(size: 16, weight: .black, design: .rounded))',
+        '                    .foregroundStyle(.white)',
+        '                    .frame(maxWidth: .infinity).padding(.vertical, 18)',
+        '                    .background(',
+        '                        phase == .done ? Color.green : (phase == .failed ? Color.red : theme.accent),',
+        '                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)',
+        '                    )',
+        '                    .shadow(color: (phase == .done ? Color.green : theme.accent).opacity(0.5), radius: 16, x: 0, y: 6)',
+        '                }',
+        '                .buttonStyle(.plain)',
+        '                .disabled([.downloading, .injecting, .done].contains(phase))',
+        '                .padding(.horizontal, 24).padding(.bottom, 40)',
+        '            }',
+        '        }',
+        '        .preferredColorScheme(.dark)',
+        '        .task { await runInject() }',
+        '    }',
+
+        '    private var statusText: String {',
+        '        switch phase {',
+        '        case .idle:        return "READY"',
+        '        case .downloading:  return "DOWNLOADING..."',
+        '        case .injecting:    return "INJECTING..."',
+        '        case .done:         return "SUCCESS"',
+        '        case .failed:       return resultMsg.isEmpty ? "FAILED" : resultMsg',
+        '        }',
+        '    }',
+        '    private var statusColor: Color {',
+        '        switch phase {',
+        '        case .done:   return .green',
+        '        case .failed: return .red',
+        '        default:      return KernelActiveTheme.shared.glow',
+        '        }',
+        '    }',
+        '    private var buttonLabel: String {',
+        '        switch phase {',
+        '        case .done:    return "INJECTED ✓"',
+        '        case .failed:  return "RETRY"',
+        '        default:       return "INJECT " + instance.label.uppercased()',
+        '        }',
+        '    }',
+
+        '    private func runInject() async {',
+        '        let key = KernelKeychain.load() ?? UserDefaults.standard.string(forKey: "app.savedKey") ?? ""',
+        '        guard !key.isEmpty else { phase = .failed; resultMsg = "No key"; return }',
+        '        phase = .downloading; progress = 0',
+        '        withAnimation(.linear(duration: 1.5)) { progress = 0.5 }',
+        '        let fileURL: URL',
+        '        do { fileURL = try await KernelPatchDownloader.download(patchID: instance.id, key: key) }',
+        '        catch { phase = .failed; resultMsg = error.localizedDescription; return }',
+        '        phase = .injecting',
+        '        withAnimation(.linear(duration: 1.0)) { progress = 0.95 }',
+        '        do {',
+        '            let data    = try PatchProjectLibrary.readPackage(at: fileURL)',
+        '            let decoded = try PatchPackageCodec.decode(data, password: nil)',
+        '            var patched = decoded.project',
+        '            patched.bundleIdentifiers = [targetBundleID]',
+        '            for i in patched.rules.indices       { patched.rules[i].bundleID       = targetBundleID }',
+        '            for i in patched.directories.indices { patched.directories[i].bundleID = targetBundleID }',
+        '            _ = try DevicePatchService.apply(project: patched)',
+        '            progress = 1.0',
+        '            phase = .done',
+        '            UINotificationFeedbackGenerator().notificationOccurred(.success)',
+        '            if UserDefaults.standard.object(forKey: "kernel.auto_launch") as? Bool ?? true {',
+        '                Task { @MainActor in',
+        '                    try? await Task.sleep(nanoseconds: 1_000_000_000)',
+        '                    await KernelGameLauncher.launchByBundleID(targetBundleID)',
+        '                }',
+        '            }',
+        '        } catch let e as PatchPackageError { phase = .failed; resultMsg = language.text(e.localizationKey)',
+        '        } catch { phase = .failed; resultMsg = error.localizedDescription }',
+        '        try? FileManager.default.removeItem(at: fileURL)',
+        '    }',
+        '}',
+    ])
+    code = code + sheet_code
+
+    # Заменяем KernelInjectSheet на BeautifulInjectSheet в KernelRealInjectCenter
+    ref = os.path.join(ROOT, 'Sources', 'helpers', 'KernelReferenceUI.swift')
+    if os.path.exists(ref):
+        with open(ref, 'r') as f: rcode = f.read()
+        rcode = rcode.replace('KernelInjectSheet(', 'BeautifulInjectSheet(')
+        with open(ref, 'w') as f: f.write(rcode)
+        print('[setup] ✓ KernelRealInjectCenter uses BeautifulInjectSheet')
+
+    with open(iview, 'w') as f: f.write(code)
+    print('[setup] ✓ BeautifulInjectSheet written (auto-starts inject)')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -52883,6 +53078,7 @@ def write_files():
     _patch_real_inject()
     _patch_fix_game_tab()
     _patch_control_center_inject()
+    _patch_beautiful_inject_sheet()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
