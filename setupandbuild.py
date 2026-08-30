@@ -51805,679 +51805,295 @@ def _patch_video_bg_redesign():
     # Но mp4 по умолчанию может не попасть. Проверим collect_sources.
 
 
-
-def _patch_reference_assets():
-    "KERNEL: prefer the user-provided reference animation over the tiny fallback."
-    import os, shutil
-    candidates = [
-        os.path.join(ROOT, 'twixxel.3840x2160.mp4'),
-        os.path.join(ROOT, 'kernel_bg_loop.mp4'),
-    ]
-    dst = os.path.join(ROOT, 'Sources', 'Resources', 'kernel_bg_loop.mp4')
-    for src in candidates:
-        if os.path.abspath(src) == os.path.abspath(dst):
-            continue
-        if os.path.exists(src) and os.path.getsize(src) > 0:
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(src, dst)
-            print(f'[setup] ✓ reference animation copied from {os.path.basename(src)} ({os.path.getsize(dst)} bytes)')
-            return
-    print('[setup] reference animation not found; keeping bundled fallback')
-
-
-def _patch_reference_ui():
-    "KERNEL: reference-inspired Control Center, visual library and Account settings."
+def _patch_inject_redesign():
+    """KERNEL: видео-баннер сверху + expand-карточка при тапе на фичу."""
     import os
-    sources = os.path.join(ROOT, 'Sources')
-    views = os.path.join(sources, 'views')
-    helpers = os.path.join(sources, 'helpers')
-    os.makedirs(views, exist_ok=True)
-    os.makedirs(helpers, exist_ok=True)
+    views = os.path.join(ROOT, 'Sources', 'views')
 
-    helper_swift = r'''import SwiftUI
-import UIKit
-import Foundation
-
-public struct KernelReferenceFeature: Identifiable {
-    public let id: String
-    public let title: String
-    public let icon: String
-    public let subtitle: String
-    public let category: String
-    public init(id: String, title: String, icon: String, subtitle: String, category: String = "MODULE") {
-        self.id = id; self.title = title; self.icon = icon; self.subtitle = subtitle; self.category = category
-    }
-}
-
-public struct KernelReferenceStatusChip: View {
-    let title: String
-    let value: String
-    let color: Color
-    let active: Bool
-    public init(title: String, value: String, color: Color, active: Bool) {
-        self.title = title; self.value = value; self.color = color; self.active = active
-    }
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 6) {
-                Circle().fill(active ? color : Color.white.opacity(0.25))
-                    .frame(width: 7, height: 7)
-                    .shadow(color: active ? color : .clear, radius: 5)
-                Text(title.uppercased())
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(active ? .white.opacity(0.86) : .white.opacity(0.42))
-            }
-            Text(value.uppercased())
-                .font(.system(size: 12, weight: .black, design: .monospaced))
-                .tracking(1.0)
-                .foregroundStyle(active ? color : .white.opacity(0.45))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
-        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-            .stroke(active ? color.opacity(0.55) : Color.white.opacity(0.12), lineWidth: 1))
-    }
-}
-
-public struct KernelReferenceVideoBanner: View {
-    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
-    public init() {}
-    public var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            if animationEnabled {
-                KernelVideoBackground().opacity(0.72)
-            } else {
-                LinearGradient(colors: [Color(red: 0.10, green: 0.02, blue: 0.05), .black], startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
-            LinearGradient(colors: [.clear, .black.opacity(0.82)], startPoint: .top, endPoint: .bottom)
-            VStack(alignment: .leading, spacing: 5) {
-                Text("KERNEL SYSTEM")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                    .tracking(2.4)
-                    .foregroundStyle(.white.opacity(0.66))
-                Text("CONTROL CENTER")
-                    .font(.system(size: 21, weight: .black, design: .rounded))
-                    .tracking(2.0)
-                    .foregroundStyle(.white)
-            }
-            .padding(16)
-        }
-        .frame(height: 164)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .stroke(Color.white.opacity(0.17), lineWidth: 1))
-        .shadow(color: Color.red.opacity(0.14), radius: 18, x: 0, y: 8)
-    }
-}
-
-public struct KernelReferenceFeatureCard: View {
-    let feature: KernelReferenceFeature
-    let unlocked: Bool
-    let selected: Bool
-    let action: () -> Void
-    @ObservedObject private var theme = KernelActiveTheme.shared
-    public init(feature: KernelReferenceFeature, unlocked: Bool, selected: Bool, action: @escaping () -> Void) {
-        self.feature = feature; self.unlocked = unlocked; self.selected = selected; self.action = action
-    }
-    public var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: feature.icon)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.26))
-                    Spacer()
-                    Image(systemName: selected ? "checkmark.circle.fill" : (unlocked ? "circle" : "lock.fill"))
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(selected ? theme.accent : .white.opacity(unlocked ? 0.42 : 0.2))
-                }
-                Spacer(minLength: 4)
-                Text(feature.title)
-                    .font(.system(size: 14, weight: .black, design: .rounded))
-                    .tracking(1.4)
-                    .foregroundStyle(unlocked ? .white : .white.opacity(0.34))
-                Text(unlocked ? feature.subtitle : "LOCKED")
-                    .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                    .tracking(1.0)
-                    .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.2))
-            }
-            .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
-            .padding(14)
-            .background(selected ? theme.accent.opacity(0.14) : Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(selected ? theme.accent.opacity(0.8) : (unlocked ? Color.red.opacity(0.42) : Color.white.opacity(0.10)), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-public struct KernelReferenceProjectDetails: View {
-    let feature: KernelReferenceFeature
-    let available: Bool
-    @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var theme = KernelActiveTheme.shared
-    @State private var previewApplied = false
-
-    public init(feature: KernelReferenceFeature, available: Bool) {
-        self.feature = feature; self.available = available
-    }
-
-    public var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.18)
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(theme.accent.opacity(0.14))
-                                .frame(width: 64, height: 64)
-                            Image(systemName: feature.icon)
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundStyle(theme.accent)
-                        }
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(feature.category.uppercased())
-                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                                .tracking(2)
-                                .foregroundStyle(theme.accent)
-                            Text(feature.title)
-                                .font(.system(size: 22, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
-                        }
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(theme.accent.opacity(0.35), lineWidth: 1))
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("PROJECT DETAILS")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                            .tracking(2.2)
-                            .foregroundStyle(.white.opacity(0.45))
-                        detailRow("STATUS", available ? "AVAILABLE" : "LOCKED", available ? .green : .red)
-                        detailRow("MODE", "LOCAL PREVIEW", theme.accent)
-                        detailRow("SYNC", "LICENSE CONTROLLED", .white.opacity(0.7))
-                    }
-                    .padding(16)
-                    .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.12), lineWidth: 1))
-
-                    Spacer()
-
-                    Button {
-                        guard available else { return }
-                        previewApplied = true
-                        if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-                    } label: {
-                        HStack {
-                            Image(systemName: previewApplied ? "checkmark.circle.fill" : "play.fill")
-                            Text(previewApplied ? "PREVIEW ACTIVE" : "START LOCAL PREVIEW")
-                        }
-                        .font(.system(size: 13, weight: .heavy, design: .monospaced))
-                        .tracking(1.2)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(available ? theme.accent : Color.gray.opacity(0.35), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!available)
-                }
-                .padding(20)
-            }
-            .navigationTitle("Preview")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-
-    @ViewBuilder private func detailRow(_ label: String, _ value: String, _ color: Color) -> some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(1.5)
-                .foregroundStyle(.white.opacity(0.42))
-            Spacer()
-            Text(value)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(color)
-        }
-    }
-}
-
-public struct KernelReferenceControlCenter: View {
-    @ObservedObject private var license = LicenseSnapshotStore.shared
-    @ObservedObject private var session = KernelFeatureSession.shared
-    @ObservedObject private var theme = KernelActiveTheme.shared
-    @State private var now = Date()
-    @State private var selectedFeature: String?
-    @State private var detailFeature: KernelReferenceFeature?
-    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
-
-    private let features = [
-        KernelReferenceFeature(id: "body", title: "AIM BODY", icon: "figure.stand", subtitle: "LOCAL PREVIEW", category: "AIM"),
-        KernelReferenceFeature(id: "neck", title: "AIM NECK", icon: "person.bust", subtitle: "LOCAL PREVIEW", category: "AIM"),
-        KernelReferenceFeature(id: "magic_bullet", title: "MAGIC BULLET", icon: "scope", subtitle: "LOCAL PREVIEW", category: "AIM"),
-        KernelReferenceFeature(id: "aim_drag", title: "AIM DRAG", icon: "hand.draw.fill", subtitle: "LOCAL PREVIEW", category: "AIM"),
-        KernelReferenceFeature(id: "holo_blue", title: "HOLOGRAM BLUE", icon: "sparkles.tv.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
-        KernelReferenceFeature(id: "holo_full", title: "HOLOGRAM FULL", icon: "sparkles", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
-        KernelReferenceFeature(id: "holo_pink", title: "HOLOGRAM PINK", icon: "heart.circle.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
-        KernelReferenceFeature(id: "chams", title: "CHAMS", icon: "eye.fill", subtitle: "ASSET PREVIEW", category: "HOLOGRAM"),
-        KernelReferenceFeature(id: "fps144", title: "144 FPS", icon: "gauge.with.needle", subtitle: "PROFILE PREVIEW", category: "PERFORMANCE"),
-        KernelReferenceFeature(id: "skin", title: "MOD SKIN", icon: "tshirt.fill", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
-        KernelReferenceFeature(id: "skin_alok", title: "SKIN ALOK", icon: "person.crop.circle", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
-        KernelReferenceFeature(id: "skin_dimitri", title: "SKIN DIMITRI", icon: "person.crop.square", subtitle: "LOCAL PREVIEW", category: "MOD SKIN"),
-    ]
-
-    private var isLicensed: Bool {
-        guard let snapshot = license.snapshot else { return false }
-        return snapshot.expiresAt.map { $0 > now } ?? true
-    }
-    private var deviceVerified: Bool { UIDevice.current.identifierForVendor != nil }
-    private var serverLive: Bool {
-        guard let synced = license.snapshot?.syncedAt else { return false }
-        return now.timeIntervalSince(synced) < 3600
-    }
-    private var licenseValue: String {
-        guard let snapshot = license.snapshot else { return "NOT ACTIVE" }
-        if let expiry = snapshot.expiresAt {
-            let seconds = max(0, Int(expiry.timeIntervalSince(now)))
-            return seconds == 0 ? "EXPIRED" : String(format: "%02dd %02dh", seconds / 86400, (seconds % 86400) / 3600)
-        }
-        return "LIFETIME"
-    }
-
-    public init() {}
-    public var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.22)
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(alignment: .bottom) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("EXTERNAL")
-                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                                    .tracking(4)
-                                    .foregroundStyle(.white.opacity(0.48))
-                                Text("KERNEL")
-                                    .font(.system(size: 36, weight: .black, design: .rounded))
-                                    .tracking(3)
-                                    .foregroundStyle(.white)
-                            }
-                            Spacer()
-                            Text("v1.1")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(theme.accent)
-                        }
-                        KernelReferenceVideoBanner()
-                        HStack(spacing: 8) {
-                            KernelReferenceStatusChip(title: "License", value: licenseValue, color: .green, active: isLicensed)
-                            KernelReferenceStatusChip(title: "Device", value: deviceVerified ? "Verified" : "Pending", color: .purple, active: deviceVerified)
-                            KernelReferenceStatusChip(title: "Server", value: serverLive ? "Live" : "Sync", color: .green, active: serverLive)
-                        }
-                        Text("FEATURES")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(4)
-                            .foregroundStyle(.white.opacity(0.58))
-                            .padding(.top, 4)
-                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                            ForEach(features) { feature in
-                                let unlocked = isLicensed && session.inPlan(feature.id)
-                                KernelReferenceFeatureCard(feature: feature, unlocked: unlocked, selected: selectedFeature == feature.id) {
-                                    guard unlocked else { return }
-                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                                        selectedFeature = feature.id
-                                        detailFeature = feature
-                                    }
-                                    if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-                                }
-                            }
-                        }
-                        if let selectedFeature {
-                            HStack(spacing: 10) {
-                                Image(systemName: "checkmark.shield.fill").foregroundStyle(theme.accent)
-                                Text("SELECTED: \(selectedFeature.uppercased())")
-                                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                                    .tracking(1.2)
-                                    .foregroundStyle(.white.opacity(0.82))
-                                Spacer()
-                            }
-                            .padding(14)
-                            .background(theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(theme.accent.opacity(0.34), lineWidth: 1))
-                        }
-                        NavigationLink {
-                            KernelReferenceVisualLibrary()
-                        } label: {
-                            HStack {
-                                Text("OPEN VISUAL WORKSPACE")
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                            }
-                            .font(.system(size: 12, weight: .heavy, design: .monospaced))
-                            .tracking(1.5)
-                            .foregroundStyle(.white)
-                            .padding(16)
-                            .frame(maxWidth: .infinity)
-                            .background(LinearGradient(colors: [theme.accent.opacity(0.82), theme.glow.opacity(0.72)], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .opacity(isLicensed ? 1 : 0.45)
-                        .disabled(!isLicensed)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 18)
-                    .padding(.bottom, 28)
-                }
-            }
-            .navigationBarHidden(true)
-        }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in now = value }
-        .sheet(item: $detailFeature) { feature in
-            KernelReferenceProjectDetails(feature: feature, available: isLicensed && session.inPlan(feature.id))
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-public struct KernelReferenceGameView: View {
-    @ObservedObject private var theme = KernelActiveTheme.shared
-    public init() {}
-    public var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.18)
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("GAME")
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .tracking(3)
-                            .foregroundStyle(.white)
-                        Text("PROJECT WORKSPACE")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                            .tracking(2.5)
-                            .foregroundStyle(theme.accent)
-                        KernelReferenceVideoBanner()
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("SELECTED PROJECT")
-                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                                .tracking(1.8)
-                                .foregroundStyle(.white.opacity(0.42))
-                            Text("KERNEL WORKSPACE")
-                                .font(.system(size: 22, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
-                            Text("Build, preview and manage your own project modules from one place.")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.55))
-                        }
-                        .padding(18)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.12), lineWidth: 1))
-                        NavigationLink {
-                            KernelInjectView()
-                        } label: {
-                            Label("OPEN WORKSPACE", systemImage: "arrow.right.circle.fill")
-                                .font(.system(size: 13, weight: .heavy, design: .monospaced))
-                                .tracking(1.4)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(theme.accent, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(18)
-                }
-            }
-            .navigationBarHidden(true)
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-public struct KernelReferenceVisualLibrary: View {
-    @ObservedObject private var theme = KernelActiveTheme.shared
-    @State private var selected = 0
-    @State private var applied = false
-    private let packs = [
-        ("PRISM", "COLOR STUDY", Color.purple, "sparkles"),
-        ("NEBULA", "MOTION STUDY", Color.blue, "waveform.path.ecg"),
-        ("MONO", "CONTRAST STUDY", Color.white, "circle.lefthalf.filled"),
-    ]
-    public init() {}
-    public var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                KernelBackgroundView(color: packs[selected].2).ignoresSafeArea().opacity(0.2)
-                VStack(spacing: 16) {
-                    HStack {
-                        Text("MOD SKIN PREVIEW")
-                            .font(.system(size: 12, weight: .heavy, design: .monospaced)).tracking(3)
-                            .foregroundStyle(.white.opacity(0.7))
-                        Spacer()
-                        Text("\(selected + 1) / \(packs.count)")
-                            .font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.white.opacity(0.5))
-                    }
-                    .padding(.horizontal, 20).padding(.top, 16)
-                    TabView(selection: $selected) {
-                        ForEach(packs.indices, id: \.self) { index in
-                            VStack(spacing: 16) {
-                                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                    .fill(LinearGradient(colors: [packs[index].2.opacity(0.75), .black.opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .overlay(Image(systemName: packs[index].3).font(.system(size: 80, weight: .thin)).foregroundStyle(.white.opacity(0.72)))
-                                    .overlay(RoundedRectangle(cornerRadius: 28).stroke(packs[index].2.opacity(0.72), lineWidth: 1.5))
-                                    .frame(height: 300)
-                                Text(packs[index].0)
-                                    .font(.system(size: 30, weight: .black, design: .rounded)).tracking(4).foregroundStyle(.white)
-                                Text(packs[index].1)
-                                    .font(.system(size: 11, weight: .heavy, design: .monospaced)).tracking(2).foregroundStyle(packs[index].2)
-                            }
-                            .padding(.horizontal, 20)
-                            .tag(index)
-                        }
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(maxHeight: .infinity)
-                    HStack(spacing: 7) {
-                        ForEach(packs.indices, id: \.self) { index in
-                            Capsule().fill(index == selected ? theme.accent : Color.white.opacity(0.25))
-                                .frame(width: index == selected ? 24 : 6, height: 6)
-                        }
-                    }
-                    Button {
-                        applied = true
-                        if UserDefaults.standard.bool(forKey: "kernel.haptics_enabled") { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-                    } label: {
-                        HStack {
-                            Image(systemName: applied ? "checkmark.circle.fill" : "paintpalette.fill")
-                            Text(applied ? "PREVIEW APPLIED" : "APPLY PREVIEW")
-                        }
-                        .font(.system(size: 14, weight: .heavy, design: .rounded)).tracking(1.5)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(LinearGradient(colors: [theme.accent, theme.glow], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    }
-                    .buttonStyle(.plain).padding(.horizontal, 20).padding(.bottom, 22)
-                }
-            }
-            .navigationTitle("Mod Skin Preview")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-'''
-    with open(os.path.join(helpers, 'KernelReferenceUI.swift'), 'w', encoding='utf-8') as f:
-        f.write(helper_swift)
-
-    content_swift = r'''import SwiftUI
-
-struct ContentView: View {
-    @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
-    @EnvironmentObject private var appState: AppState
-    @State private var selectedTab: Int = 1
-
-    var body: some View {
-        TabView(selection: $selectedTab) {
-            KernelReferenceGameView()
-                .tabItem { Label("GAME", systemImage: "gamecontroller.fill") }
-                .tag(0)
-            KernelReferenceControlCenter()
-                .tabItem { Label("CONTROL", systemImage: "slider.horizontal.3") }
-                .tag(1)
-            KernelReferenceAccountView()
-                .tabItem { Label("ACCOUNT", systemImage: "person.crop.circle") }
-                .tag(2)
-        }
-        .tint(Color(red: 0.92, green: 0.10, blue: 0.16))
-        .toolbarBackground(Color(red: 0.035, green: 0.035, blue: 0.05), for: .tabBar)
-        .toolbarBackground(.visible, for: .tabBar)
-        .onChange(of: patchDraftCoordinator.request?.id) { _ in selectedTab = 0 }
-        .onChange(of: patchDraftCoordinator.importRequest?.id) { _ in selectedTab = 0 }
-    }
-}
-
-struct KernelReferenceAccountView: View {
-    @EnvironmentObject private var appState: AppState
-    @AppStorage("kernel.animation_enabled") private var animationEnabled = true
-    @AppStorage("kernel.haptics_enabled") private var hapticsEnabled = true
-    @AppStorage("kernel.diagnostics_enabled") private var diagnosticsEnabled = false
-    @ObservedObject private var theme = KernelActiveTheme.shared
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                KernelBackgroundView(color: theme.accent).ignoresSafeArea().opacity(0.16)
-                Form {
-                    Section {
-                        HStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 36)).foregroundStyle(theme.accent)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("KERNEL ACCOUNT").font(.system(size: 15, weight: .black, design: .rounded))
-                                Text("DEVICE SETTINGS & SUPPORT").font(.system(size: 10, weight: .heavy, design: .monospaced)).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-                    Section("PREFERENCES") {
-                        Toggle("Animated banner", isOn: $animationEnabled)
-                        Toggle("Haptics", isOn: $hapticsEnabled)
-                        Toggle("Show diagnostics", isOn: $diagnosticsEnabled)
-                    }
-                    Section("PROJECT") {
-                        NavigationLink {
-                            KernelReferenceVisualLibrary()
-                        } label: {
-                            Label("Mod Skin Preview", systemImage: "square.stack.3d.up.fill")
-                        }
-                    }
-                    if diagnosticsEnabled {
-                        Section("DIAGNOSTICS") {
-                            LabeledContent("Device", value: AppInfo.displayMachineName)
-                            LabeledContent("iOS", value: "\(AppInfo.osVersion) (\(AppInfo.osBuild))")
-                            LabeledContent("Support", value: appState.isSupported ? "READY" : "LIMITED")
-                        }
-                    }
-                    Section {
-                        Link(destination: URL(string: "https://t.me/kernel_ipa_bot")!) {
-                            Label("Open Support", systemImage: "questionmark.circle.fill")
-                        }
-                    }
-                }
-                .scrollContentBackground(.hidden)
-            }
-            .navigationTitle("Account")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-'''
-    with open(os.path.join(sources, 'ContentView.swift'), 'w', encoding='utf-8') as f:
-        f.write(content_swift)
-
-    # Add external MP4 to the resources collected by gen_xcodeproj.
-    collect_old = "elif f.endswith('.strings'):\n                resources.append(p)"
-    collect_new = "elif f.endswith('.strings') or f.endswith('.mp4'):\n                resources.append(p)"
-    source = open(path, 'r', encoding='utf-8').read() if False else None
-
-    # The generator file itself is patched below by the outer script.
-    print('[setup] ✓ KernelReferenceUI.swift and ContentView.swift written')
-
-def _patch_reference_safety():
-    """KERNEL: neutral UI build must not auto-run third-party process operations."""
-    import os
-    app_path = os.path.join(ROOT, 'Sources', 'App.swift')
-    if not os.path.exists(app_path):
-        return
-    with open(app_path, 'r', encoding='utf-8') as f:
-        text = f.read()
-    text = text.replace(
-        '        maybeAutoRunKernelExploit()\n',
-        '        // Neutral UI build: no automatic third-party process operations.\n'
-    )
-    with open(app_path, 'w', encoding='utf-8') as f:
-        f.write(text)
-    print('[setup] ✓ neutral mode: auto-run disabled')
-
-
-def _patch_reference_activation_ui():
-    "KERNEL: compact gray authorization styling for the reference UI."
-    import os
-    view_path = os.path.join(ROOT, 'Sources', 'views', 'KeyActivationView.swift')
-    if not os.path.exists(view_path):
-        return
-    with open(view_path, 'r', encoding='utf-8') as f:
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if not os.path.exists(iview):
+        print('[setup] KernelInjectView not found'); return
+    with open(iview, 'r') as f:
         code = f.read()
-    code = code.replace(
-        'KernelHeroTitle("KERNEL IPA", font: .system(size: 40, weight: .black, design: .rounded))',
-        'Text("KERNEL IPA").font(.system(size: 27, weight: .black, design: .rounded)).tracking(2.8).foregroundStyle(Color.white.opacity(0.78))'
-    )
-    code = code.replace(
-        '.padding(.bottom: 32)' + chr(10) + chr(10) + '                // Check steps',
-        '.padding(.bottom: 18)' + chr(10) + chr(10) + '                // Check steps',
-        1
-    )
-    code = code.replace('.padding(.horizontal, 16).frame(height: 46)', '.padding(.horizontal, 14).frame(height: 36)', 1)
-    code = code.replace('.font(.system(size: 12, weight: .semibold, design: .monospaced))', '.font(.system(size: 11, weight: .semibold, design: .monospaced))', 1)
-    old_activate = '''                    .background(LinearGradient(colors: [KernelActiveTheme.shared.accent, KernelActiveTheme.shared.glow], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(KernelActiveTheme.shared.glow.opacity(0.7), lineWidth: 1))
-                    .shadow(color: KernelActiveTheme.shared.accent.opacity(0.6), radius: 14, x: 0, y: 4)'''
-    new_activate = '''                    .background(Color.gray.opacity(0.42), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.30), lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.24), radius: 8, x: 0, y: 3)'''
-    code = code.replace(old_activate, new_activate, 1)
-    old_get = '''                        .foregroundColor(KernelActiveTheme.shared.accent.opacity(0.9))
-                        .frame(maxWidth: .infinity).frame(height: 40)
-                        .background(KernelTheme.bgSurface.opacity(0.6))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(KernelActiveTheme.shared.accent.opacity(0.4), lineWidth: 1))'''
-    new_get = '''                        .foregroundColor(Color.white.opacity(0.68))
-                        .frame(maxWidth: .infinity).frame(height: 38)
-                        .background(Color.gray.opacity(0.30))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.22), lineWidth: 1))'''
-    code = code.replace(old_get, new_get, 1)
-    with open(view_path, 'w', encoding='utf-8') as f:
+
+    if 'KernelInjectVideoBanner' in code:
+        print('[setup] inject redesign already applied'); return
+
+    # ── 1. Добавить @State expandedID + заменить List на новый ──
+    # Добавляем @State после selectedInstance
+    old_state = '    @State private var selectedInstance: KernelPatchInstance? = nil'
+    new_state = ('    @State private var selectedInstance: KernelPatchInstance? = nil' + chr(10) +
+                 '    @State private var expandedID: String? = nil')
+    if old_state in code:
+        code = code.replace(old_state, new_state, 1)
+        print('[setup] ✓ expandedID state added')
+
+    # ── 2. Заменить List на VStack с видео-баннером + expand ──
+    old_zstack_bg = '            ZStack {' + chr(10) + '                KT.bg.ignoresSafeArea()'
+    new_zstack_bg = ('            ZStack {' + chr(10) +
+                     '                KT.bg.ignoresSafeArea()' + chr(10) +
+                     '                // KERNEL: видео-баннер сверху' + chr(10) +
+                     '                VStack(spacing: 0) {' + chr(10) +
+                     '                    KernelInjectVideoBanner(targetName: targets[selectedTarget].0)' + chr(10) +
+                     '                }' + chr(10) +
+                     '                .frame(maxHeight: .infinity, alignment: .top)' + chr(10) +
+                     '                .ignoresSafeArea(edges: .top)')
+    if old_zstack_bg in code:
+        code = code.replace(old_zstack_bg, new_zstack_bg, 1)
+        print('[setup] ✓ video banner ZStack added')
+
+    # ── 3. Заменить KernelInstanceRow на новый expand-стиль ──
+    old_row_tap = ('                            KernelInstanceRow(instance: inst, inPlan: available)' + chr(10) +
+                   '                                .contentShape(Rectangle())' + chr(10) +
+                   '                                .onTapGesture {' + chr(10) +
+                   '                                    guard available else { return }' + chr(10) +
+                   '                                    selectedInstance = inst' + chr(10) +
+                   '                                }')
+    new_row_tap = ('                            KernelExpandableRow(' + chr(10) +
+                   '                                instance: inst,' + chr(10) +
+                   '                                inPlan: available,' + chr(10) +
+                   '                                isExpanded: expandedID == inst.id,' + chr(10) +
+                   '                                targetName: targets[selectedTarget].0,' + chr(10) +
+                   '                                targetBundleID: targets[selectedTarget].1' + chr(10) +
+                   '                            )' + chr(10) +
+                   '                            .contentShape(Rectangle())' + chr(10) +
+                   '                            .onTapGesture {' + chr(10) +
+                   '                                guard available else { return }' + chr(10) +
+                   '                                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {' + chr(10) +
+                   '                                    expandedID = expandedID == inst.id ? nil : inst.id' + chr(10) +
+                   '                                }' + chr(10) +
+                   '                            }')
+    if old_row_tap in code:
+        code = code.replace(old_row_tap, new_row_tap, 1)
+        print('[setup] ✓ expandable rows')
+
+    # ── 4. Убираем sheet (он теперь не нужен) ──
+    old_sheet = ('.sheet(item: $selectedInstance) { inst in' + chr(10) +
+                 '            KernelInjectSheet(' + chr(10) +
+                 '                instance:       inst,' + chr(10) +
+                 '                targetName:     targets[selectedTarget].0,' + chr(10) +
+                 '                targetBundleID: targets[selectedTarget].1' + chr(10) +
+                 '            )' + chr(10) +
+                 '        }')
+    if old_sheet in code:
+        code = code.replace(old_sheet, '// sheet replaced by expandable rows')
+        print('[setup] ✓ sheet removed')
+
+    # ── 5. Добавляем KernelInjectVideoBanner + KernelExpandableRow в конец файла ──
+    new_components = chr(10).join([
+        '',
+        '// MARK: - Video Banner',
+        'private struct KernelInjectVideoBanner: View {',
+        '    let targetName: String',
+        '    var body: some View {',
+        '        ZStack(alignment: .bottomLeading) {',
+        '            KernelVideoBackground()',
+        '                .frame(height: 220)',
+        '                .clipped()',
+        '            LinearGradient(',
+        '                colors: [.clear, Color.black.opacity(0.85)],',
+        '                startPoint: .top, endPoint: .bottom',
+        '            )',
+        '            .frame(height: 220)',
+        '            VStack(alignment: .leading, spacing: 4) {',
+        '                Text("TARGET GAME")',
+        '                    .font(.system(size: 10, weight: .heavy, design: .monospaced))',
+        '                    .tracking(3)',
+        '                    .foregroundStyle(.white.opacity(0.5))',
+        '                Text(targetName.uppercased())',
+        '                    .font(.system(size: 22, weight: .black, design: .rounded))',
+        '                    .tracking(2)',
+        '                    .foregroundStyle(.white)',
+        '                    .shadow(color: KernelActiveTheme.shared.accent, radius: 8)',
+        '            }',
+        '            .padding(.horizontal, 20)',
+        '            .padding(.bottom, 20)',
+        '        }',
+        '        .ignoresSafeArea(edges: .top)',
+        '    }',
+        '}',
+        '',
+        '// MARK: - Expandable Row',
+        'private struct KernelExpandableRow: View {',
+        '    let instance: KernelPatchInstance',
+        '    let inPlan: Bool',
+        '    let isExpanded: Bool',
+        '    let targetName: String',
+        '    let targetBundleID: String',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '',
+        '    var body: some View {',
+        '        VStack(spacing: 0) {',
+        '            // ── Collapsed row ──',
+        '            HStack(spacing: 14) {',
+        '                ZStack {',
+        '                    RoundedRectangle(cornerRadius: 14)',
+        '                        .fill(inPlan ? theme.accent.opacity(0.18) : Color.white.opacity(0.04))',
+        '                        .frame(width: 52, height: 52)',
+        '                        .overlay(RoundedRectangle(cornerRadius: 14)',
+        '                            .stroke(inPlan ? theme.accent.opacity(0.5) : Color.white.opacity(0.08), lineWidth: 1))',
+        '                    Image(systemName: instance.icon)',
+        '                        .font(.system(size: 22, weight: .medium))',
+        '                        .foregroundColor(inPlan ? theme.accent : .white.opacity(0.2))',
+        '                }',
+        '                VStack(alignment: .leading, spacing: 4) {',
+        '                    Text(instance.label)',
+        '                        .font(.system(size: 15, weight: .bold))',
+        '                        .foregroundColor(inPlan ? .white : .white.opacity(0.3))',
+        '                    HStack(spacing: 5) {',
+        '                        Circle().fill(inPlan ? Color.green : Color.white.opacity(0.15)).frame(width: 6, height: 6)',
+        '                        Text(inPlan ? "AVAILABLE" : "NOT IN PLAN")',
+        '                            .font(.system(size: 10, weight: .heavy, design: .monospaced))',
+        '                            .tracking(1)',
+        '                            .foregroundColor(inPlan ? .green : .white.opacity(0.2))',
+        '                    }',
+        '                }',
+        '                Spacer()',
+        '                Image(systemName: isExpanded ? "xmark" : (inPlan ? "chevron.right" : "lock.fill"))',
+        '                    .font(.system(size: 13, weight: .semibold))',
+        '                    .foregroundColor(inPlan ? theme.accent.opacity(0.7) : .white.opacity(0.15))',
+        '                    .rotationEffect(isExpanded ? .degrees(0) : .degrees(0))',
+        '            }',
+        '            .padding(.vertical, 10).padding(.horizontal, 16)',
+        '',
+        '            // ── Expanded inject card ──',
+        '            if isExpanded && inPlan {',
+        '                KernelInjectCard(instance: instance, targetName: targetName, targetBundleID: targetBundleID)',
+        '                    .transition(.asymmetric(',
+        '                        insertion: .move(edge: .top).combined(with: .opacity),',
+        '                        removal: .opacity',
+        '                    ))',
+        '            }',
+        '        }',
+        '        .background(isExpanded && inPlan ? theme.accent.opacity(0.06) : Color.clear)',
+        '        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))',
+        '        .overlay(RoundedRectangle(cornerRadius: 16)',
+        '            .stroke(isExpanded && inPlan ? theme.accent.opacity(0.3) : Color.clear, lineWidth: 1))',
+        '        .padding(.horizontal, 16)',
+        '        .padding(.vertical, 4)',
+        '    }',
+        '}',
+        '',
+        '// MARK: - Inject Card (expanded)',
+        'private struct KernelInjectCard: View {',
+        '    let instance: KernelPatchInstance',
+        '    let targetName: String',
+        '    let targetBundleID: String',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    @Environment(\.appLanguage) private var language',
+        '',
+        '    enum Phase { case ready, downloading, injecting, done, failed }',
+        '    @State private var phase: Phase = .ready',
+        '    @State private var resultMsg: String = ""',
+        '',
+        '    var body: some View {',
+        '        VStack(spacing: 12) {',
+        '            // Big inject button',
+        '            Button {',
+        '                guard phase == .ready || phase == .failed else { return }',
+        '                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()',
+        '                Task { await doInject() }',
+        '            } label: {',
+        '                HStack(spacing: 10) {',
+        '                    if phase == .downloading || phase == .injecting {',
+        '                        ProgressView().tint(.white).scaleEffect(0.85)',
+        '                    } else {',
+        '                        Image(systemName: "bolt.fill")',
+        '                    }',
+        '                    Text(buttonLabel).tracking(1.5)',
+        '                }',
+        '                .font(.system(size: 15, weight: .black, design: .rounded))',
+        '                .foregroundColor(.white)',
+        '                .frame(maxWidth: .infinity)',
+        '                .padding(.vertical, 16)',
+        '                .background(',
+        '                    phase == .done ? Color.green : theme.accent,',
+        '                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)',
+        '                )',
+        '                .shadow(color: (phase == .done ? Color.green : theme.accent).opacity(0.6), radius: 14, x: 0, y: 4)',
+        '            }',
+        '            .buttonStyle(.plain)',
+        '            .disabled([.downloading, .injecting, .done].contains(phase))',
+        '',
+        '            // Restore button',
+        '            Button { } label: {',
+        '                HStack(spacing: 8) {',
+        '                    Image(systemName: "arrow.counterclockwise")',
+        '                    Text("RESTORE ORIGINAL").tracking(1)',
+        '                }',
+        '                .font(.system(size: 13, weight: .bold, design: .monospaced))',
+        '                .foregroundColor(.white.opacity(0.45))',
+        '                .frame(maxWidth: .infinity)',
+        '                .padding(.vertical, 12)',
+        '                .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))',
+        '                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08), lineWidth: 1))',
+        '            }',
+        '            .buttonStyle(.plain)',
+        '',
+        '            if phase == .done || phase == .failed {',
+        '                HStack(spacing: 8) {',
+        '                    Image(systemName: phase == .done ? "checkmark.circle.fill" : "xmark.circle.fill")',
+        '                        .foregroundStyle(phase == .done ? Color.green : Color.red)',
+        '                    Text(resultMsg)',
+        '                        .font(.system(size: 12, weight: .semibold))',
+        '                        .foregroundStyle(phase == .done ? Color.green : Color.red)',
+        '                        .multilineTextAlignment(.center)',
+        '                }',
+        '            }',
+        '        }',
+        '        .padding(.horizontal, 16)',
+        '        .padding(.bottom, 16)',
+        '    }',
+        '',
+        '    private var buttonLabel: String {',
+        '        switch phase {',
+        '        case .ready:       return "INJECT \(instance.label.uppercased())"',
+        '        case .downloading: return "DOWNLOADING..."',
+        '        case .injecting:   return "INJECTING..."',
+        '        case .done:        return "✓ INJECTED"',
+        '        case .failed:      return "RETRY"',
+        '        }',
+        '    }',
+        '',
+        '    private func doInject() async {',
+        '        let key = KernelKeychain.load() ?? UserDefaults.standard.string(forKey: "app.savedKey") ?? ""',
+        '        guard !key.isEmpty else { phase = .failed; resultMsg = "No key found"; return }',
+        '        phase = .downloading',
+        '        let fileURL: URL',
+        '        do { fileURL = try await KernelPatchDownloader.download(patchID: instance.id, key: key) }',
+        '        catch { phase = .failed; resultMsg = error.localizedDescription; return }',
+        '        phase = .injecting',
+        '        do {',
+        '            let data    = try PatchProjectLibrary.readPackage(at: fileURL)',
+        '            let decoded = try PatchPackageCodec.decode(data, password: nil)',
+        '            var patched = decoded.project',
+        '            patched.bundleIdentifiers = [targetBundleID]',
+        '            for i in patched.rules.indices       { patched.rules[i].bundleID       = targetBundleID }',
+        '            for i in patched.directories.indices { patched.directories[i].bundleID = targetBundleID }',
+        '            _ = try DevicePatchService.apply(project: patched)',
+        '            phase = .done',
+        '            resultMsg = "Injected \(instance.label) into \(targetName). Launching..."',
+        '            if UserDefaults.standard.object(forKey: "kernel.auto_launch") as? Bool ?? true {',
+        '                Task { @MainActor in',
+        '                    try? await Task.sleep(nanoseconds: 800_000_000)',
+        '                    await KernelGameLauncher.launchByBundleID(targetBundleID)',
+        '                }',
+        '            }',
+        '        } catch let e as PatchPackageError { phase = .failed; resultMsg = language.text(e.localizationKey)',
+        '        } catch { phase = .failed; resultMsg = error.localizedDescription }',
+        '        try? FileManager.default.removeItem(at: fileURL)',
+        '    }',
+        '}',
+    ])
+
+    # Добавляю новые struct-ы в конец файла
+    if 'KernelInjectCard' not in code:
+        code = code + chr(10) + new_components
+        print('[setup] ✓ KernelExpandableRow + KernelInjectCard appended')
+
+    with open(iview, 'w') as f:
         f.write(code)
-    print('[setup] ✓ compact gray authorization UI')
+
 
 def write_files():
     for rel, b64 in FILES.items():
@@ -52503,10 +52119,7 @@ def write_files():
     _patch_feature_selector()
     _patch_premium_ui()
     _patch_video_bg_redesign()
-    _patch_reference_assets()
-    _patch_reference_ui()
-    _patch_reference_safety()
-    _patch_reference_activation_ui()
+    _patch_inject_redesign()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
@@ -52520,7 +52133,7 @@ def collect_sources():
                 swift.append(p)
             elif f.endswith('.h'):
                 headers.append(p)
-            elif f.endswith('.strings') or f.endswith('.mp4'):
+            elif f.endswith('.strings'):
                 resources.append(p)
     return sorted(swift), sorted(headers), sorted(resources)
 
@@ -52613,8 +52226,7 @@ def gen_xcodeproj():
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ft}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     for rel, (fid, abspath) in resource_refs.items():
         name = os.path.basename(rel)
-        ftype = 'video.mpeg4' if rel.endswith('.mp4') else 'text.plist.strings'
-        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = {ftype}; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
+        W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = text.plist.strings; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{name}\"; }};")
     for icon_name, (fid, abspath) in icon_refs.items():
         W(f"\t\t{fid} = {{isa = PBXFileReference; lastKnownFileType = image.png; path = \"{abspath}\"; sourceTree = \"<absolute>\"; name = \"{icon_name}\"; }};")
     W("/* End PBXFileReference section */")
