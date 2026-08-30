@@ -51821,8 +51821,8 @@ def _patch_inject_redesign():
 
     # ── 1. Добавить @State expandedID + заменить List на новый ──
     # Добавляем @State после selectedInstance
-    old_state = '    @State private var selectedInstance: KernelPatchInstance? = nil'
-    new_state = ('    @State private var selectedInstance: KernelPatchInstance? = nil' + chr(10) +
+    old_state = '    @State private var selectedInstance: KernelPatchInstance?'
+    new_state = ('    @State private var selectedInstance: KernelPatchInstance?' + chr(10) +
                  '    @State private var expandedID: String? = nil')
     if old_state in code:
         code = code.replace(old_state, new_state, 1)
@@ -51833,11 +51833,9 @@ def _patch_inject_redesign():
     new_zstack_bg = ('            ZStack {' + chr(10) +
                      '                KT.bg.ignoresSafeArea()' + chr(10) +
                      '                // KERNEL: видео-баннер сверху' + chr(10) +
-                     '                VStack(spacing: 0) {' + chr(10) +
-                     '                    KernelInjectVideoBanner(targetName: targets[selectedTarget].0)' + chr(10) +
-                     '                }' + chr(10) +
-                     '                .frame(maxHeight: .infinity, alignment: .top)' + chr(10) +
-                     '                .ignoresSafeArea(edges: .top)')
+                     '                KernelInjectVideoBanner(targetName: targets[selectedTarget].0)' + chr(10) +
+                     '                    .frame(maxHeight: .infinity, alignment: .top)' + chr(10) +
+                     '                    .ignoresSafeArea(edges: .top)')
     if old_zstack_bg in code:
         code = code.replace(old_zstack_bg, new_zstack_bg, 1)
         print('[setup] ✓ video banner ZStack added')
