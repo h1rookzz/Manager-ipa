@@ -53047,6 +53047,41 @@ def _patch_beautiful_inject_sheet():
     with open(iview, 'w') as f: f.write(code)
     print('[setup] ✓ BeautifulInjectSheet written (auto-starts inject)')
 
+
+def _patch_rename_tabs():
+    """KERNEL: переименовываем вкладки AIM/HOLOGRAM/MOD SKIN → AIM/ESP/MOD+BOOST."""
+    import os
+    views = os.path.join(ROOT, 'Sources', 'views')
+    iview = os.path.join(views, 'KernelInjectView.swift')
+    if not os.path.exists(iview): return
+    with open(iview, 'r') as f: code = f.read()
+    # PatchCategory rawValue переименовываем
+    code = code.replace('case hologram = "HOLOGRAM"', 'case hologram = "ESP"')
+    code = code.replace('case modSkin  = "MOD SKIN"', 'case modSkin  = "MOD+BOOST"')
+    code = code.replace('case modSkin = "MOD SKIN"', 'case modSkin = "MOD+BOOST"')
+    # Также фиксим файлы в allInstances для fps144
+    code = code.replace('label: "144 FPS",           icon: "gauge.with.needle",   fileName: "KERNEL144fps.krnl",            category: .hologram)', 'label: "144 FPS BOOST",       icon: "gauge.with.needle",   fileName: "KERNEL144fps.krnl",            category: .modSkin)')
+    with open(iview, 'w') as f: f.write(code)
+    print('[setup] ✓ Tabs renamed: HOLOGRAM→ESP, MOD SKIN→MOD+BOOST, fps→modSkin')
+
+    # Также в KernelRealInjectCenter (KernelReferenceUI.swift) убираем дубль текста
+    ref = os.path.join(ROOT, 'Sources', 'helpers', 'KernelReferenceUI.swift')
+    if os.path.exists(ref):
+        with open(ref, 'r') as f: rc = f.read()
+        # Убираем текст из KernelReferenceVideoBanner
+        old_banner_text = ('            Text("KERNEL SYSTEM")' + chr(10) +
+                           '                .font(.system(size: 11, weight: .heavy, design: .monospaced))' + chr(10) +
+                           '                .tracking(2)' + chr(10) +
+                           '                .foregroundStyle(.white.opacity(0.5))' + chr(10) +
+                           '            Text("CONTROL CENTER")' + chr(10) +
+                           '                .font(.system(size: 24, weight: .black, design: .rounded))' + chr(10) +
+                           '                .foregroundStyle(.white)')
+        new_banner_text = '            Text("")  // text moved to KernelRealInjectCenter'
+        if old_banner_text in rc:
+            rc = rc.replace(old_banner_text, new_banner_text)
+            print('[setup] ✓ Duplicate banner text removed')
+        with open(ref, 'w') as f: f.write(rc)
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -53079,6 +53114,7 @@ def write_files():
     _patch_fix_game_tab()
     _patch_control_center_inject()
     _patch_beautiful_inject_sheet()
+    _patch_rename_tabs()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
