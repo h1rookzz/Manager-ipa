@@ -52630,6 +52630,228 @@ def _patch_fix_game_tab():
     # Также убираем кнопку OPEN WORKSPACE из NavigationLink если есть
     # (KernelReferenceGameView сам по себе имеет её, но мы его уже заменили)
 
+
+def _patch_control_center_inject():
+    """KERNEL: заменяем KernelReferenceControlCenter на полнофункциональный с реальным инжектом."""
+    import os
+    helpers = os.path.join(ROOT, 'Sources', 'helpers')
+    ref_ui = os.path.join(helpers, 'KernelReferenceUI.swift')
+    if not os.path.exists(ref_ui):
+        print('[setup] KernelReferenceUI.swift not found'); return
+    with open(ref_ui, 'r') as f:
+        code = f.read()
+
+    if 'KernelRealInjectCenter' in code:
+        print('[setup] control_center_inject already applied'); return
+
+    # Дописываем в конец файла новый KernelRealInjectCenter
+    # который заменит KernelReferenceControlCenter в ContentView
+    new_view = chr(10).join([
+        '',
+        '// MARK: - Real Inject Control Center (replaces KernelReferenceControlCenter)',
+        '// Архитектура как у Robot External: видео + выбор игры + список + inject',
+        'struct KernelRealInjectCenter: View {',
+        '    @ObservedObject private var license = LicenseSnapshotStore.shared',
+        '    @ObservedObject private var session = KernelFeatureSession.shared',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    @State private var selectedGame: Int = 0',
+        '    @State private var selectedInstance: KernelPatchInstance? = nil',
+        '    @State private var now = Date()',
+        '',
+        '    private let games = [',
+        '        ("Free Fire",     "com.dts.freefireth",  "FreeFire"),',
+        '        ("Free Fire MAX", "com.dts.freefiremax", "FreeFireMax"),',
+        '    ]',
+        '',
+        '    private let allFeatures: [KernelPatchInstance] = [',
+        '        KernelPatchInstance(id: "body",         label: "AIM BODY",       icon: "figure.stand",       fileName: "KERNEL_BODY.krnl",          category: .aim),',
+        '        KernelPatchInstance(id: "neck",         label: "AIM NECK",       icon: "person.bust",        fileName: "KERNEL_NECK.krnl",          category: .aim),',
+        '        KernelPatchInstance(id: "magic_bullet", label: "MAGIC BULLET",   icon: "scope",              fileName: "MAGIC_BULET_KERNEL.krnl",   category: .aim),',
+        '        KernelPatchInstance(id: "aim_drag",     label: "AIM DRAG",       icon: "hand.draw.fill",     fileName: "Aim_drag.krnl",             category: .aim),',
+        '        KernelPatchInstance(id: "holo_blue",    label: "HOLOGRAM BLUE",  icon: "sparkles.tv.fill",   fileName: "KERNEL_Hologram_blue.krnl", category: .hologram),',
+        '        KernelPatchInstance(id: "holo_full",    label: "HOLOGRAM FULL",  icon: "sparkles",           fileName: "KERNEL_Hologram_Full.krnl", category: .hologram),',
+        '        KernelPatchInstance(id: "holo_pink",    label: "HOLOGRAM PINK",  icon: "heart.circle.fill",  fileName: "KERNEL_HOLO_PINK.krnl",    category: .hologram),',
+        '        KernelPatchInstance(id: "chams",        label: "CHAMS",          icon: "eye.fill",           fileName: "Chams_KERNEL.krnl",         category: .hologram),',
+        '        KernelPatchInstance(id: "fps144",       label: "144 FPS",        icon: "gauge.with.needle",  fileName: "KERNEL144fps.krnl",        category: .hologram),',
+        '        KernelPatchInstance(id: "skin",         label: "MOD SKIN",       icon: "tshirt.fill",        fileName: "Skin_hack_alok.krnl",      category: .modSkin),',
+        '        KernelPatchInstance(id: "skin_alok",    label: "SKIN ALOK",      icon: "person.crop.circle", fileName: "Skin_hack_alok.krnl",      category: .modSkin),',
+        '        KernelPatchInstance(id: "skin_dimitri", label: "SKIN DIMITRI",   icon: "person.crop.square", fileName: "Skin_hack_Dimitri.krnl",   category: .modSkin),',
+        '    ]',
+        '',
+        '    private var isLicensed: Bool {',
+        '        guard let s = license.snapshot else { return false }',
+        '        return s.expiresAt.map { $0 > now } ?? true',
+        '    }',
+        '    private var licenseValue: String {',
+        '        guard let s = license.snapshot else { return "NOT ACTIVE" }',
+        '        if let e = s.expiresAt {',
+        '            let sec = max(0, Int(e.timeIntervalSince(now)))',
+        '            return sec == 0 ? "EXPIRED" : String(format: "%02dD %02dH", sec/86400, (sec%86400)/3600)',
+        '        }',
+        '        return "LIFETIME"',
+        '    }',
+        '',
+        '    var body: some View {',
+        '        NavigationStack {',
+        '            ZStack {',
+        '                Color.black.ignoresSafeArea()',
+        '                ScrollView(showsIndicators: false) {',
+        '                    VStack(spacing: 0) {',
+        '                        // ── Video Banner (как в Robot External) ──────',
+        '                        ZStack(alignment: .bottomLeading) {',
+        '                            KernelReferenceVideoBanner()',
+        '                                .frame(height: 200)',
+        '                                .clipped()',
+        '                            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)',
+        '                                .frame(height: 200)',
+        '                            VStack(alignment: .leading, spacing: 4) {',
+        '                                Text("KERNEL SYSTEM")',
+        '                                    .font(.system(size: 10, weight: .heavy, design: .monospaced))',
+        '                                    .tracking(2).foregroundStyle(.white.opacity(0.5))',
+        '                                Text("CONTROL CENTER")',
+        '                                    .font(.system(size: 24, weight: .black, design: .rounded))',
+        '                                    .tracking(1).foregroundStyle(.white)',
+        '                            }.padding(.horizontal, 18).padding(.bottom, 16)',
+        '                        }',
+        '                        // ── Status chips ──────────────────────────────',
+        '                        HStack(spacing: 10) {',
+        '                            KernelReferenceStatusChip(title: "LICENSE", value: licenseValue, color: .green, active: isLicensed)',
+        '                            KernelReferenceStatusChip(title: "DEVICE", value: UIDevice.current.identifierForVendor != nil ? "VERIFIED" : "UNKNOWN", color: .purple, active: true)',
+        '                            KernelReferenceStatusChip(title: "SERVER", value: license.snapshot?.syncedAt != nil ? "LIVE" : "OFFLINE", color: .green, active: license.snapshot?.syncedAt != nil)',
+        '                        }.padding(.horizontal, 14).padding(.vertical, 12)',
+        '                        // ── Game Selector (FF / FF MAX) ───────────────',
+        '                        HStack(spacing: 10) {',
+        '                            ForEach(games.indices, id: \.self) { i in',
+        '                                Button { withAnimation { selectedGame = i } } label: {',
+        '                                    HStack(spacing: 8) {',
+        '                                        Circle().fill(selectedGame == i ? theme.accent : .clear)',
+        '                                            .frame(width: 8, height: 8)',
+        '                                            .overlay(Circle().stroke(theme.accent.opacity(0.5), lineWidth: 1))',
+        '                                        Text(games[i].0.uppercased())',
+        '                                            .font(.system(size: 12, weight: .heavy, design: .monospaced))',
+        '                                            .tracking(1.2)',
+        '                                            .foregroundStyle(selectedGame == i ? .white : .white.opacity(0.4))',
+        '                                    }',
+        '                                    .padding(.horizontal, 14).padding(.vertical, 9)',
+        '                                    .frame(maxWidth: .infinity)',
+        '                                    .background(selectedGame == i ? theme.accent.opacity(0.15) : Color.white.opacity(0.04),',
+        '                                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))',
+        '                                    .overlay(RoundedRectangle(cornerRadius: 10)',
+        '                                        .stroke(selectedGame == i ? theme.accent.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1))',
+        '                                }',
+        '                                .buttonStyle(.plain)',
+        '                            }',
+        '                        }.padding(.horizontal, 14).padding(.bottom, 8)',
+        '                        // ── Target game label ─────────────────────────',
+        '                        HStack {',
+        '                            Text("SELECTED GAME")',
+        '                                .font(.system(size: 9, weight: .heavy, design: .monospaced))',
+        '                                .tracking(1.5).foregroundStyle(.white.opacity(0.38))',
+        '                            Spacer()',
+        '                            Text(games[selectedGame].1)',
+        '                                .font(.system(size: 9, weight: .semibold, design: .monospaced))',
+        '                                .foregroundStyle(theme.accent.opacity(0.6))',
+        '                        }.padding(.horizontal, 14).padding(.bottom, 12)',
+        '                        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1).padding(.horizontal, 14)',
+        '                        // ── FEATURES label ────────────────────────────',
+        '                        HStack {',
+        '                            Text("FEATURES")',
+        '                                .font(.system(size: 10, weight: .heavy, design: .monospaced))',
+        '                                .tracking(2).foregroundStyle(.white.opacity(0.4))',
+        '                            Spacer()',
+        '                        }.padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)',
+        '                        // ── Feature cards 2-column grid ───────────────',
+        '                        let cols = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]',
+        '                        LazyVGrid(columns: cols, spacing: 10) {',
+        '                            ForEach(allFeatures) { feat in',
+        '                                let unlocked = isLicensed && session.inPlan(feat.id)',
+        '                                RealFeatureCard(feature: feat, unlocked: unlocked)',
+        '                                    .onTapGesture {',
+        '                                        guard unlocked else { return }',
+        '                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()',
+        '                                        selectedInstance = feat',
+        '                                    }',
+        '                            }',
+        '                        }.padding(.horizontal, 14)',
+        '                        Spacer(minLength: 40)',
+        '                    }',
+        '                }',
+        '            }',
+        '            .navigationBarTitleDisplayMode(.inline)',
+        '            .toolbar {',
+        '                ToolbarItem(placement: .principal) {',
+        '                    HStack(spacing: 6) {',
+        '                        Text("EXTERNAL").font(.system(size: 10, weight: .heavy, design: .monospaced)).tracking(2).foregroundStyle(theme.accent)',
+        '                        Text("KERNEL").font(.system(size: 17, weight: .black, design: .rounded)).foregroundStyle(.white)',
+        '                        Spacer()',
+        '                        Text("v1.1").font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(theme.accent.opacity(0.6))',
+        '                    }',
+        '                }',
+        '            }',
+        '        }',
+        '        .sheet(item: $selectedInstance) { inst in',
+        '            KernelInjectSheet(',
+        '                instance: inst,',
+        '                targetName: games[selectedGame].0,',
+        '                targetBundleID: games[selectedGame].1',
+        '            )',
+        '        }',
+        '        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { self.now = $0 }',
+        '        .preferredColorScheme(.dark)',
+        '    }',
+        '}',
+        '',
+        '// MARK: - Feature Card',
+        'struct RealFeatureCard: View {',
+        '    let feature: KernelPatchInstance',
+        '    let unlocked: Bool',
+        '    @ObservedObject private var theme = KernelActiveTheme.shared',
+        '    var body: some View {',
+        '        VStack(alignment: .leading, spacing: 0) {',
+        '            HStack {',
+        '                Image(systemName: feature.icon)',
+        '                    .font(.system(size: 18, weight: .medium))',
+        '                    .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.2))',
+        '                Spacer()',
+        '                Image(systemName: unlocked ? "circle" : "lock.fill")',
+        '                    .font(.system(size: 13))',
+        '                    .foregroundStyle(unlocked ? theme.accent.opacity(0.5) : .white.opacity(0.15))',
+        '            }.padding(.horizontal, 14).padding(.top, 14)',
+        '            Spacer()',
+        '            VStack(alignment: .leading, spacing: 4) {',
+        '                Text(feature.label)',
+        '                    .font(.system(size: 14, weight: .black, design: .rounded))',
+        '                    .foregroundStyle(unlocked ? .white : .white.opacity(0.3))',
+        '                Text(unlocked ? "AVAILABLE" : "LOCKED")',
+        '                    .font(.system(size: 9, weight: .heavy, design: .monospaced))',
+        '                    .tracking(1.5)',
+        '                    .foregroundStyle(unlocked ? theme.accent : .white.opacity(0.2))',
+        '            }.padding(.horizontal, 14).padding(.bottom, 14)',
+        '        }',
+        '        .frame(height: 120)',
+        '        .frame(maxWidth: .infinity)',
+        '        .background(unlocked ? theme.accent.opacity(0.06) : Color.white.opacity(0.03),',
+        '                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))',
+        '        .overlay(RoundedRectangle(cornerRadius: 16)',
+        '            .stroke(unlocked ? theme.accent.opacity(0.35) : Color.white.opacity(0.08), lineWidth: 1))',
+        '    }',
+        '}',
+    ])
+
+    code = code + new_view
+
+    # Заменяем KernelReferenceControlCenter на KernelRealInjectCenter в ContentView
+    cview = os.path.join(ROOT, 'Sources', 'ContentView.swift')
+    if os.path.exists(cview):
+        with open(cview, 'r') as f: cv = f.read()
+        cv = cv.replace('KernelReferenceControlCenter()', 'KernelRealInjectCenter()')
+        cv = cv.replace('Label("CONTROL", systemImage: "slider.horizontal.3")', 'Label("CONTROL", systemImage: "slider.horizontal.3")')
+        with open(cview, 'w') as f: f.write(cv)
+        print('[setup] ✓ ContentView: KernelReferenceControlCenter → KernelRealInjectCenter')
+
+    with open(ref_ui, 'w') as f: f.write(code)
+    print('[setup] ✓ KernelRealInjectCenter written (Robot External style)')
+
 def write_files():
     for rel, b64 in FILES.items():
         if isinstance(b64, tuple): b64 = ''.join(b64)
@@ -52660,6 +52882,7 @@ def write_files():
     _patch_morn_activation()
     _patch_real_inject()
     _patch_fix_game_tab()
+    _patch_control_center_inject()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
