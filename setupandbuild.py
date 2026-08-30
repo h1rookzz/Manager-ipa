@@ -52492,6 +52492,13 @@ def _patch_morn_activation():
     old_t = 'Text("KERNEL IPA").font(.system(size: 27, weight: .black, design: .rounded)).tracking(2.8).foregroundStyle(Color.white.opacity(0.78))'
     new_t = 'KernelHeroTitle("KERNEL IPA", font: .system(size: 40, weight: .black, design: .rounded))'
     if old_t in code: code = code.replace(old_t, new_t); print('[setup] ✓ HeroTitle restored')
+    # Затемняем фон — добавляем тёмный overlay поверх видео
+    old_vid = 'KernelVideoBackground().ignoresSafeArea()'
+    new_vid = ('KernelVideoBackground().ignoresSafeArea()' + chr(10) +
+               '            Color.black.opacity(0.55).ignoresSafeArea()')
+    if old_vid in code and 'Color.black.opacity(0.55)' not in code:
+        code = code.replace(old_vid, new_vid)
+        print('[setup] ✓ video darkened')
     # Возвращаем красную ACTIVATE кнопку
     old_btn = ('.background(Color.gray.opacity(0.42), in: RoundedRectangle(cornerRadius: 12, style: .continuous))' + chr(10) +
                '                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.30), lineWidth: 1))' + chr(10) +
@@ -52515,6 +52522,86 @@ def _patch_morn_activation():
     with open(view_path, 'w', encoding='utf-8') as f:
         f.write(code)
     print('[setup] ✓ Morn activation UI complete')
+
+
+def _patch_real_inject():
+    """KERNEL: возвращаем настоящий inject в KernelReferenceControlCenter."""
+    import os, re
+    helpers_path = os.path.join(ROOT, 'Sources', 'helpers', 'KernelReferenceUI.swift')
+    if not os.path.exists(helpers_path):
+        print('[setup] KernelReferenceUI.swift not found, skip'); return
+    with open(helpers_path, 'r', encoding='utf-8') as f:
+        code = f.read()
+    if 'KernelInjectSheet' in code:
+        print('[setup] real inject already patched'); return
+
+    # 1. LOCAL PREVIEW → AVAILABLE (subtitle для фичей)
+    code = code.replace('subtitle: "LOCAL PREVIEW"', 'subtitle: "AVAILABLE"')
+    code = code.replace('subtitle: "ASSET PREVIEW"', 'subtitle: "AVAILABLE"')
+    code = code.replace('subtitle: "PROFILE PREVIEW"', 'subtitle: "AVAILABLE"')
+    print('[setup] ✓ subtitles: LOCAL PREVIEW → AVAILABLE')
+
+    # 2. Заменяем sheet с KernelReferenceProjectDetails на настоящий KernelInjectSheet
+    old_sheet = ('.sheet(item: $detailFeature) { feature in' + chr(10) +
+                 '                KernelReferenceProjectDetails(feature: feature, available: isLicensed && session.inPlan(feature.id))' + chr(10) +
+                 '            }')
+    new_sheet = ('.sheet(item: $detailFeature) { feature in' + chr(10) +
+                 '                KernelInjectSheet(' + chr(10) +
+                 '                    instance: KernelPatchInstance(' + chr(10) +
+                 '                        id: feature.id,' + chr(10) +
+                 '                        label: feature.title,' + chr(10) +
+                 '                        icon: feature.icon,' + chr(10) +
+                 '                        fileName: featureFileName(feature.id),' + chr(10) +
+                 '                        category: featureCat(feature.id)' + chr(10) +
+                 '                    ),' + chr(10) +
+                 '                    targetName: "Free Fire",' + chr(10) +
+                 '                    targetBundleID: "com.dts.freefireth"' + chr(10) +
+                 '                )' + chr(10) +
+                 '            }')
+    if old_sheet in code:
+        code = code.replace(old_sheet, new_sheet)
+        print('[setup] ✓ sheet → KernelInjectSheet')
+
+    # 3. Добавляем хелпер-функции featureFileName и featureCat
+    helpers = [
+        '    private func featureFileName(_ id: String) -> String {',
+        '        switch id {',
+        '        case "body":         return "KERNEL_BODY.krnl"',
+        '        case "neck":         return "KERNEL_NECK.krnl"',
+        '        case "magic_bullet": return "MAGIC_BULET_KERNEL.krnl"',
+        '        case "aim_drag":     return "Aim_drag.krnl"',
+        '        case "holo_blue":    return "KERNEL_Hologram_blue.krnl"',
+        '        case "holo_full":    return "KERNEL_Hologram_Full.krnl"',
+        '        case "holo_pink":    return "KERNEL_HOLO_PINK.krnl"',
+        '        case "chams":        return "Chams_KERNEL.krnl"',
+        '        case "fps144":       return "KERNEL144fps.krnl"',
+        '        case "skin":         return "Skin_hack_alok.krnl"',
+        '        case "skin_alok":    return "Skin_hack_alok.krnl"',
+        '        case "skin_dimitri": return "Skin_hack_Dimitri.krnl"',
+        '        default:             return "\(id).krnl"',
+        '        }',
+        '    }',
+        '    private func featureCat(_ id: String) -> PatchCategory {',
+        '        if ["body","neck","magic_bullet","aim_drag"].contains(id) { return .aim }',
+        '        if ["skin","skin_alok","skin_dimitri"].contains(id) { return .modSkin }',
+        '        return .hologram',
+        '    }',
+    ]
+    # Вставляем перед последней закрывающей скобкой struct
+    insert_marker = chr(10).join([
+        '    var body: some View { Text("KernelReferenceControlCenter") }',
+    ])
+    # Ищем конец struct KernelReferenceControlCenter
+    # Проще — вставим в конец файла как extension
+    ext_code = (chr(10) + 'extension KernelReferenceControlCenter {' + chr(10) +
+                chr(10).join(helpers) + chr(10) + '}')
+    if 'extension KernelReferenceControlCenter' not in code:
+        code = code + ext_code
+        print('[setup] ✓ featureFileName/featureCat extension added')
+
+    with open(helpers_path, 'w', encoding='utf-8') as f:
+        f.write(code)
+    print('[setup] ✓ real inject patched')
 
 def write_files():
     for rel, b64 in FILES.items():
@@ -52544,6 +52631,7 @@ def write_files():
     _patch_reference_ui()
     _patch_reference_safety()
     _patch_morn_activation()
+    _patch_real_inject()
     print(f'[setup] Wrote {len(FILES)} files and repaired localization/UI')
 
 
