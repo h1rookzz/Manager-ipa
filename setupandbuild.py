@@ -94418,7 +94418,7 @@ def gen_xcodeproj():
     W("/* End PBXGroup section */")
     W("")
     W("/* Begin PBXNativeTarget section */")
-    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BCL_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"MANAGEXFF\"; productName = \"MANAGEXFF\"; productReference = {APP_REF}; productType = \"com.apple.product-type.application\"; }};")
+    W(f"\t\t{NATIVE_TARGET} = {{isa = PBXNativeTarget; buildConfigurationList = {BCL_TARGET}; buildPhases = ({SOURCES_PHASE},{FRAMEWORKS_PHASE},{RESOURCES_PHASE},); buildRules = (); dependencies = (); name = \"KERNEL\"; productName = \"KERNEL\"; productReference = {APP_REF}; productType = \"com.apple.product-type.application\"; }};")
     W("/* End PBXNativeTarget section */")
     W("")
     W("/* Begin PBXProject section */")
@@ -94472,7 +94472,7 @@ def gen_xcodeproj():
         "INFOPLIST_FILE": f'"{plist_path}"',
         "OTHER_LDFLAGS": '"-Wl,-undefined,dynamic_lookup"',
         "PRODUCT_BUNDLE_IDENTIFIER": '"com.apple.mobile.MobileHouseArrest"',
-        "PRODUCT_NAME": '"MANAGEXFF"',
+        "PRODUCT_NAME": '"KERNEL"',
         "PRODUCT_MODULE_NAME": '"Managexff"',
         "SWIFT_OBJC_BRIDGING_HEADER": f'"{bridging}"',
         "TARGETED_DEVICE_FAMILY": '"1,2"',
@@ -94497,7 +94497,7 @@ def gen_xcodeproj():
     W("}")
 
     pbxproj = "\n".join(L)
-    proj_dir = os.path.join(ROOT, "MANAGEXFF.xcodeproj")
+    proj_dir = os.path.join(ROOT, "KERNEL.xcodeproj")
     os.makedirs(proj_dir, exist_ok=True)
     with open(os.path.join(proj_dir, "project.pbxproj"), "w") as f:
         f.write(pbxproj)
@@ -94509,21 +94509,21 @@ def gen_xcodeproj():
    <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
       <BuildActionEntries>
          <BuildActionEntry buildForArchiving="YES" buildForRunning="YES" buildForTesting="YES" buildForProfiling="YES" buildForAnalyzing="YES">
-            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="MANAGEXFF.app" BlueprintName="MANAGEXFF" ReferencedContainer="container:MANAGEXFF.xcodeproj"/>
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="KERNEL.app" BlueprintName="KERNEL" ReferencedContainer="container:KERNEL.xcodeproj"/>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <LaunchAction buildConfiguration="TgtRelease" selectedDebuggerIdentifier="" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" allowLocationSimulation="YES">
       <BuildableProductRunnable runnableDebuggingMode="0">
-         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="MANAGEXFF.app" BlueprintName="MANAGEXFF" ReferencedContainer="container:MANAGEXFF.xcodeproj"/>
+         <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{NATIVE_TARGET}" BuildableName="KERNEL.app" BlueprintName="KERNEL" ReferencedContainer="container:KERNEL.xcodeproj"/>
       </BuildableProductRunnable>
    </LaunchAction>
    <ArchiveAction buildConfiguration="TgtRelease" revealArchiveInOrganizer="YES"/>
 </Scheme>'''
-    with open(os.path.join(scheme_dir, "MANAGEXFF.xcscheme"), "w") as f:
+    with open(os.path.join(scheme_dir, "KERNEL.xcscheme"), "w") as f:
         f.write(scheme)
 
-    print(f"[setup] Generated MANAGEXFF.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons, {len(lproj_refs)} lproj folders")
+    print(f"[setup] Generated KERNEL.xcodeproj: {len(swift_files)} sources, {len(ICONS)} icons, {len(lproj_refs)} lproj folders")
 
 if __name__ == "__main__":
     print("=== MXFF EXTERNAL — setup and build.py ===")
